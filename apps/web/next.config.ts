@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   transpilePackages: ["@pitwall/api", "@pitwall/db", "@pitwall/shared"],
   serverExternalPackages: ["better-sqlite3"],
   webpack: (config, { isServer }) => {

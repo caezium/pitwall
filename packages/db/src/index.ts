@@ -12,4 +12,5 @@ sqlite.pragma("journal_mode = WAL");
 export const db = drizzle(sqlite, { schema });
 
 export type Database = typeof db;
+export type PitwallDatabase = typeof db;
 export { schema };

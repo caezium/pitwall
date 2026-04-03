@@ -39,15 +39,23 @@ function getPeriodRange(period: string, startDate: string) {
 
 export const budgetsRouter = router({
   list: publicProcedure.query(({ ctx }) => {
-    return ctx.db.query.budgets.findMany({
-      with: { category: true },
-    });
+    const rows = ctx.db
+      .select()
+      .from(schema.budgets)
+      .leftJoin(schema.categories, eq(schema.budgets.categoryId, schema.categories.id))
+      .all();
+
+    return rows.map((r) => ({ ...r.budgets, category: r.categories }));
   }),
 
   status: publicProcedure.query(({ ctx }) => {
-    const budgets = ctx.db.query.budgets.findMany({
-      with: { category: true },
-    });
+    const rows = ctx.db
+      .select()
+      .from(schema.budgets)
+      .leftJoin(schema.categories, eq(schema.budgets.categoryId, schema.categories.id))
+      .all();
+
+    const budgets = rows.map((r) => ({ ...r.budgets, category: r.categories }));
 
     return budgets.map((budget) => {
       const range = getPeriodRange(budget.period, budget.startDate);

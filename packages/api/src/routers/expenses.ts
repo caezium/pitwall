@@ -18,10 +18,10 @@ export const expensesRouter = router({
           limit: z.number().min(1).max(100).default(50),
           offset: z.number().min(0).default(0),
         })
-        .optional()
+        .default({})
     )
     .query(async ({ ctx, input }) => {
-      const filters = input ?? {};
+      const filters = input;
       const conditions = [];
 
       if (filters.categoryId) {
@@ -124,11 +124,11 @@ export const expensesRouter = router({
             .enum(["karting", "ai", "investment", "general"])
             .optional(),
         })
-        .optional()
+        .default({})
     )
     .query(async ({ ctx, input }) => {
       return ctx.db.query.categories.findMany({
-        where: input?.domain
+        where: input.domain
           ? eq(schema.categories.domain, input.domain)
           : undefined,
       });

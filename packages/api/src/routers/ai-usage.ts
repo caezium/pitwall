@@ -15,10 +15,10 @@ export const aiUsageRouter = router({
           limit: z.number().min(1).max(200).default(100),
           offset: z.number().min(0).default(0),
         })
-        .optional()
+        .default({})
     )
     .query(({ ctx, input }) => {
-      const filters = input ?? {};
+      const filters = input;
       const conditions = [];
 
       if (filters.provider) {
@@ -48,12 +48,12 @@ export const aiUsageRouter = router({
           startDate: z.string().optional(),
           endDate: z.string().optional(),
         })
-        .optional()
+        .default({})
     )
     .query(({ ctx, input }) => {
       const now = new Date();
       const monthStart =
-        input?.startDate ??
+        input.startDate ??
         new Date(now.getFullYear(), now.getMonth(), 1)
           .toISOString()
           .split("T")[0];

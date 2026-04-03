@@ -1,0 +1,15 @@
+services:
+  pitwall:
+    build: .
+    container_name: pitwall
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - pitwall_data:/data
+    environment:
+      - DATABASE_PATH=/data/pitwall.db
+      - NODE_ENV=production
+
+volumes:
+  pitwall_data:
