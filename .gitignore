@@ -1,8 +1,40 @@
+# Dependencies
 node_modules
+
+# Build output
 .next
 dist
 .turbo
+*.tsbuildinfo
+
+# Database
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
+
+# Environment
 .env
 .env.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+
+# Expo
+.expo
+ios
+android
+
+# Misc
+*.log
