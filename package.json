@@ -1,0 +1,23 @@
+{
+  "name": "pitwall",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:push": "pnpm --filter @pitwall/db push",
+    "db:studio": "pnpm --filter @pitwall/db studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "better-sqlite3"
+    ]
+  }
+}
