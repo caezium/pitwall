@@ -1,10 +1,20 @@
 import { router } from "../trpc";
 import { expensesRouter } from "./expenses";
 import { dashboardRouter } from "./dashboard";
+import { aiUsageRouter } from "./ai-usage";
+import { budgetsRouter } from "./budgets";
+import { investmentsRouter } from "./investments";
+import { settingsRouter } from "./settings";
+import { importRouter } from "./import";
 
 export const appRouter = router({
   expenses: expensesRouter,
   dashboard: dashboardRouter,
+  aiUsage: aiUsageRouter,
+  budgets: budgetsRouter,
+  investments: investmentsRouter,
+  settings: settingsRouter,
+  import: importRouter,
 });
 
 export type AppRouter = typeof appRouter;

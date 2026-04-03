@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Pitwall",
+    "slug": "pitwall",
+    "version": "1.0.0",
+    "scheme": "pitwall",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "bundleIdentifier": "com.pitwall.app"
+    },
+    "android": {
+      "package": "com.pitwall.app"
+    },
+    "plugins": ["expo-router"]
+  }
+}
