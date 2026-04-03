@@ -8,8 +8,8 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /app
 
-# Copy package files first for layer caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+# Copy config files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc ./
 COPY apps/web/package.json apps/web/
 COPY packages/db/package.json packages/db/
 COPY packages/api/package.json packages/api/
@@ -24,14 +24,8 @@ COPY apps/web/ apps/web/
 
 # Build Next.js
 ENV DATABASE_PATH=/tmp/build.db
-RUN pnpm --filter @pitwall/web build && rm -f /tmp/build.db
-
-# Copy standalone output static assets
-RUN cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static 2>/dev/null || true
-RUN cp -r apps/web/public apps/web/.next/standalone/apps/web/public 2>/dev/null || true
-
-# Install tsx for seeding at runtime
-RUN pnpm add -g tsx
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @pitwall/web build && rm -f /tmp/build.db*
 
 # Entrypoint
 COPY docker-entrypoint.sh /docker-entrypoint.sh

@@ -1,16 +1,21 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema/index";
 import path from "path";
 
-const dbPath = process.env.DATABASE_PATH ?? path.resolve(process.cwd(), "pitwall.db");
+export type PitwallDatabase = BetterSQLite3Database<typeof schema>;
 
-// @ts-expect-error -- bypass webpack bundling of native module
-const Database = __non_webpack_require__("better-sqlite3");
-const sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
+let _db: PitwallDatabase | null = null;
 
-export const db = drizzle(sqlite, { schema });
+export function getDb(): PitwallDatabase {
+  if (!_db) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Database = require("better-sqlite3");
+    const dbPath = process.env.DATABASE_PATH ?? path.resolve(process.cwd(), "pitwall.db");
+    const sqlite = new Database(dbPath);
+    sqlite.pragma("journal_mode = WAL");
+    _db = drizzle(sqlite, { schema });
+  }
+  return _db;
+}
 
-export type Database = typeof db;
-export type PitwallDatabase = typeof db;
 export { schema };

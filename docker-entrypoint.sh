@@ -7,13 +7,12 @@ if [ ! -f "$DATABASE_PATH" ]; then
   cd /app/packages/db
   npx drizzle-kit push 2>&1
   echo "Database schema pushed."
-
-  # Seed default categories
   npx tsx src/seed.ts 2>&1
   echo "Default categories seeded."
   cd /app
 fi
 
-# Start the server
+# Start the server with next start
 echo "Starting Pitwall on port ${PORT:-3000}..."
-exec node apps/web/.next/standalone/apps/web/server.js
+cd /app/apps/web
+exec npx next start -p "${PORT:-3000}" -H "${HOSTNAME:-0.0.0.0}"
