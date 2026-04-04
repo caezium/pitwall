@@ -6,6 +6,8 @@ import { budgetsRouter } from "./budgets";
 import { investmentsRouter } from "./investments";
 import { settingsRouter } from "./settings";
 import { importRouter } from "./import";
+import { exportRouter } from "./export";
+import { recurringRouter } from "./recurring";
 
 export const appRouter = router({
   expenses: expensesRouter,
@@ -15,6 +17,8 @@ export const appRouter = router({
   investments: investmentsRouter,
   settings: settingsRouter,
   import: importRouter,
+  export: exportRouter,
+  recurring: recurringRouter,
 });
 
 export type AppRouter = typeof appRouter;

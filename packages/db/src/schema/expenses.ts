@@ -1,4 +1,4 @@
-import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, real, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 export const categories = sqliteTable("categories", {
@@ -15,7 +15,9 @@ export const categories = sqliteTable("categories", {
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (t) => [
+  index("idx_categories_domain").on(t.domain),
+]);
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
   parent: one(categories, {
@@ -38,10 +40,14 @@ export const expenses = sqliteTable("expenses", {
   eventName: text("event_name"),
   trackName: text("track_name"),
   receiptUrl: text("receipt_url"),
+  updatedAt: text("updated_at"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (t) => [
+  index("idx_expenses_date").on(t.date),
+  index("idx_expenses_category").on(t.categoryId),
+]);
 
 export const expensesRelations = relations(expenses, ({ one, many }) => ({
   category: one(categories, {

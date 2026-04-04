@@ -5,6 +5,8 @@ import { httpBatchLink } from "@trpc/client";
 import { useState } from "react";
 import superjson from "superjson";
 import { trpc } from "@/lib/trpc";
+import { ThemeToggle } from "@/components/theme-toggle";
+// Error handling is done per-query with QueryError component
 
 const navItems = [
   { href: "/", label: "Overview" },
@@ -13,6 +15,7 @@ const navItems = [
   { href: "/ai-costs", label: "AI Costs" },
   { href: "/investments", label: "Investments" },
   { href: "/budgets", label: "Budgets" },
+  { href: "/recurring", label: "Recurring" },
   { href: "/settings", label: "Settings" },
 ];
 
@@ -33,7 +36,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <div className="flex">
-          <aside className="w-56 border-r border-zinc-800 min-h-screen p-4 flex flex-col gap-1">
+          <aside className="w-56 border-r border-zinc-800 dark:border-zinc-800 min-h-screen p-4 flex flex-col gap-1">
             <h1 className="text-xl font-bold mb-6 px-3">Pitwall</h1>
             {navItems.map((item) => (
               <a
@@ -44,8 +47,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 {item.label}
               </a>
             ))}
+            <div className="mt-auto pt-4 border-t border-zinc-800">
+              <ThemeToggle />
+            </div>
           </aside>
-          <main className="flex-1 p-8">{children}</main>
+          <main className="flex-1 p-8">
+            {children}
+          </main>
         </div>
       </QueryClientProvider>
     </trpc.Provider>

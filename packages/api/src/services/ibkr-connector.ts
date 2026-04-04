@@ -1,19 +1,8 @@
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { XMLParser } from "fast-xml-parser";
 import { schema } from "@pitwall/db";
 import type { PitwallDatabase } from "@pitwall/db";
-
-/**
- * IBKR Connector — manages connection to IB Gateway via @stoqey/ib.
- *
- * IB Gateway must be running locally for live data.
- * Falls back gracefully when offline.
- *
- * Usage:
- *   const connector = new IBKRConnector(db);
- *   await connector.connect();
- *   await connector.syncPositions();
- *   await connector.takeSnapshot();
- */
+import { decrypt } from "../lib/crypto";
 
 type IBKRConnectionStatus = {
   connected: boolean;
@@ -35,7 +24,6 @@ export class IBKRConnector {
   private port: number;
 
   constructor(private db: PitwallDatabase) {
-    // Read config from settings
     const hostSetting = db
       .select({ value: schema.appSettings.value })
       .from(schema.appSettings)
@@ -54,7 +42,6 @@ export class IBKRConnector {
 
   async connect(): Promise<IBKRConnectionStatus> {
     try {
-      // Dynamically import @stoqey/ib only when connecting
       const { IBApi, EventName } = await import("@stoqey/ib");
 
       this.ib = new IBApi({ host: this.host, port: this.port, clientId: 1 });
@@ -107,20 +94,12 @@ export class IBKRConnector {
   }
 
   getStatus(): IBKRConnectionStatus {
-    return {
-      connected: this.connected,
-      host: this.host,
-      port: this.port,
-    };
+    return { connected: this.connected, host: this.host, port: this.port };
   }
 
   async syncPositions(): Promise<SyncResult> {
     if (!this.ib || !this.connected) {
-      return {
-        success: false,
-        message: "Not connected to IB Gateway",
-        count: 0,
-      };
+      return { success: false, message: "Not connected to IB Gateway", count: 0 };
     }
 
     try {
@@ -129,32 +108,26 @@ export class IBKRConnector {
       return new Promise((resolve) => {
         const positions: any[] = [];
         const timeout = setTimeout(() => {
-          resolve({
-            success: false,
-            message: "Position sync timed out",
-            count: 0,
-          });
+          cleanup();
+          resolve({ success: false, message: "Position sync timed out", count: 0 });
         }, 30000);
 
-        this.ib.on(
-          EventName.position,
-          (account: string, contract: any, pos: number, avgCost: number) => {
-            positions.push({
-              accountId: account,
-              symbol: contract.symbol,
-              description: contract.localSymbol ?? contract.symbol,
-              quantity: pos,
-              avgCost,
-              marketValue: pos * avgCost, // Will be updated with market data
-              unrealizedPnl: 0,
-            });
-          }
-        );
+        const onPosition = (account: string, contract: any, pos: number, avgCost: number) => {
+          positions.push({
+            accountId: account,
+            symbol: contract.symbol,
+            description: contract.localSymbol ?? contract.symbol,
+            quantity: pos,
+            avgCost,
+            marketValue: pos * avgCost,
+            unrealizedPnl: 0,
+          });
+        };
 
-        this.ib.on(EventName.positionEnd, () => {
+        const onEnd = () => {
           clearTimeout(timeout);
+          cleanup();
 
-          // Upsert all positions
           for (const pos of positions) {
             const existing = this.db
               .select()
@@ -165,10 +138,7 @@ export class IBKRConnector {
             if (existing) {
               this.db
                 .update(schema.positions)
-                .set({
-                  ...pos,
-                  lastSyncAt: new Date().toISOString(),
-                })
+                .set({ ...pos, lastSyncAt: new Date().toISOString() })
                 .where(eq(schema.positions.id, existing.id))
                 .run();
             } else {
@@ -176,53 +146,37 @@ export class IBKRConnector {
             }
           }
 
-          resolve({
-            success: true,
-            message: `Synced ${positions.length} positions`,
-            count: positions.length,
-          });
-        });
+          resolve({ success: true, message: `Synced ${positions.length} positions`, count: positions.length });
+        };
 
+        const cleanup = () => {
+          this.ib.removeListener(EventName.position, onPosition);
+          this.ib.removeListener(EventName.positionEnd, onEnd);
+        };
+
+        this.ib.on(EventName.position, onPosition);
+        this.ib.on(EventName.positionEnd, onEnd);
         this.ib.reqPositions();
       });
     } catch (err) {
-      return {
-        success: false,
-        message: `Sync error: ${err instanceof Error ? err.message : String(err)}`,
-        count: 0,
-      };
+      return { success: false, message: `Sync error: ${err instanceof Error ? err.message : String(err)}`, count: 0 };
     }
   }
 
   async takeSnapshot(): Promise<SyncResult> {
     const positions = this.db.select().from(schema.positions).all();
-
     if (positions.length === 0) {
-      return {
-        success: false,
-        message: "No positions to snapshot",
-        count: 0,
-      };
+      return { success: false, message: "No positions to snapshot", count: 0 };
     }
 
     const today = new Date().toISOString().split("T")[0];
-    const netLiquidation = positions.reduce(
-      (s, p) => s + p.marketValue,
-      0
-    );
-    const totalCostBasis = positions.reduce(
-      (s, p) => s + p.avgCost * p.quantity,
-      0
-    );
-
+    const netLiquidation = positions.reduce((s, p) => s + p.marketValue, 0);
     const allocation = positions.map((p) => ({
       symbol: p.symbol,
       value: p.marketValue,
-      percent:
-        netLiquidation > 0 ? (p.marketValue / netLiquidation) * 100 : 0,
+      percent: netLiquidation > 0 ? (p.marketValue / netLiquidation) * 100 : 0,
     }));
 
-    // Upsert snapshot for today
     const existing = this.db
       .select()
       .from(schema.portfolioSnapshots)
@@ -232,89 +186,86 @@ export class IBKRConnector {
     const data = {
       date: today,
       netLiquidation,
-      cash: 0, // Would come from account summary
+      cash: 0,
       allocationJson: JSON.stringify(allocation),
-      positionsJson: JSON.stringify(
-        positions.map((p) => ({
-          symbol: p.symbol,
-          qty: p.quantity,
-          value: p.marketValue,
-          pnl: p.unrealizedPnl,
-        }))
-      ),
+      positionsJson: JSON.stringify(positions.map((p) => ({ symbol: p.symbol, qty: p.quantity, value: p.marketValue, pnl: p.unrealizedPnl }))),
     };
 
     if (existing) {
-      this.db
-        .update(schema.portfolioSnapshots)
-        .set(data)
-        .where(eq(schema.portfolioSnapshots.id, existing.id))
-        .run();
+      this.db.update(schema.portfolioSnapshots).set(data).where(eq(schema.portfolioSnapshots.id, existing.id)).run();
     } else {
       this.db.insert(schema.portfolioSnapshots).values(data).run();
     }
 
-    return {
-      success: true,
-      message: `Snapshot saved for ${today}`,
-      count: positions.length,
-    };
+    return { success: true, message: `Snapshot saved for ${today}`, count: positions.length };
   }
 
   /**
-   * Import trades from IBKR Flex Query XML (Activity Statement).
-   * This is a simplified parser — the Flex XML format is well-defined.
+   * Import trades from IBKR Flex Query XML using proper XML parser.
    */
   importFlexTrades(xmlContent: string): SyncResult {
     try {
-      // Simple XML extraction for <Trade> elements
-      const tradeMatches = xmlContent.matchAll(
-        /<Trade\s[^>]*?symbol="([^"]*)"[^>]*?dateTime="([^"]*)"[^>]*?buySell="([^"]*)"[^>]*?quantity="([^"]*)"[^>]*?tradePrice="([^"]*)"[^>]*?ibCommission="([^"]*)"[^>]*?tradeID="([^"]*)"[^>]*?accountId="([^"]*)"[^>]*?\/?>/g
-      );
+      const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: "",
+        isArray: (name) => name === "Trade",
+      });
+
+      const parsed = parser.parse(xmlContent);
+
+      // Navigate to trades — Flex XML structure varies
+      let trades: any[] = [];
+      const findTrades = (obj: any): void => {
+        if (!obj || typeof obj !== "object") return;
+        if (obj.Trade) {
+          trades = Array.isArray(obj.Trade) ? obj.Trade : [obj.Trade];
+          return;
+        }
+        for (const val of Object.values(obj)) {
+          findTrades(val);
+        }
+      };
+      findTrades(parsed);
 
       let count = 0;
-      for (const match of tradeMatches) {
-        const [, symbol, dateTime, buySell, qty, price, commission, tradeId, accountId] = match;
+      for (const trade of trades) {
+        const tradeId = trade.tradeID ?? trade.TradeID ?? trade.transactionID;
+        if (!tradeId) continue;
 
-        // Dedup by tradeId
+        // Dedup
         const existing = this.db
           .select()
           .from(schema.trades)
-          .where(eq(schema.trades.tradeId, tradeId))
+          .where(eq(schema.trades.tradeId, String(tradeId)))
           .get();
         if (existing) continue;
 
-        const action =
-          buySell === "SELL" ? "sell" : buySell === "BUY" ? "buy" : "dividend";
+        const symbol = trade.symbol ?? trade.Symbol ?? "";
+        const buySell = trade.buySell ?? trade.BuySell ?? trade.side ?? "";
+        const action = buySell.toUpperCase() === "SELL" ? "sell" : buySell.toUpperCase() === "BUY" ? "buy" : "dividend";
+        const dateTime = trade.dateTime ?? trade.DateTime ?? trade.tradeDate ?? trade.TradeDate ?? "";
+        const tradeDate = dateTime.includes(";") ? dateTime.split(";")[0] : dateTime.split("T")[0] ?? dateTime;
 
         this.db
           .insert(schema.trades)
           .values({
-            accountId: accountId ?? "default",
+            accountId: trade.accountId ?? trade.AccountId ?? "default",
             symbol,
             action: action as "buy" | "sell" | "dividend",
-            quantity: Math.abs(parseFloat(qty)),
-            price: parseFloat(price),
-            commission: Math.abs(parseFloat(commission)),
-            tradeDate: dateTime.split(";")[0] ?? dateTime,
-            tradeId,
+            quantity: Math.abs(parseFloat(trade.quantity ?? trade.Quantity ?? "0")),
+            price: parseFloat(trade.tradePrice ?? trade.TradePrice ?? trade.price ?? "0"),
+            commission: Math.abs(parseFloat(trade.ibCommission ?? trade.IBCommission ?? trade.commission ?? "0")),
+            tradeDate,
+            tradeId: String(tradeId),
           })
           .run();
 
         count++;
       }
 
-      return {
-        success: true,
-        message: `Imported ${count} trades from Flex Query`,
-        count,
-      };
+      return { success: true, message: `Imported ${count} trades from Flex Query`, count };
     } catch (err) {
-      return {
-        success: false,
-        message: `Flex import error: ${err instanceof Error ? err.message : String(err)}`,
-        count: 0,
-      };
+      return { success: false, message: `Flex import error: ${err instanceof Error ? err.message : String(err)}`, count: 0 };
     }
   }
 }

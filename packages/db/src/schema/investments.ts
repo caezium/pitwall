@@ -1,4 +1,4 @@
-import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const positions = sqliteTable("positions", {
   id: text("id")
@@ -14,14 +14,16 @@ export const positions = sqliteTable("positions", {
   lastSyncAt: text("last_sync_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (t) => [
+  uniqueIndex("idx_positions_account_symbol").on(t.accountId, t.symbol),
+]);
 
 export const trades = sqliteTable("trades", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   accountId: text("account_id").notNull(),
-  tradeId: text("trade_id").unique(),
+  tradeId: text("trade_id"),
   symbol: text("symbol").notNull(),
   action: text("action", {
     enum: ["buy", "sell", "dividend"],
@@ -34,15 +36,21 @@ export const trades = sqliteTable("trades", {
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (t) => [
+  index("idx_trades_date").on(t.tradeDate),
+  uniqueIndex("idx_trades_trade_id").on(t.tradeId),
+  index("idx_trades_symbol").on(t.symbol),
+]);
 
 export const portfolioSnapshots = sqliteTable("portfolio_snapshots", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  date: text("date").notNull().unique(),
+  date: text("date").notNull(),
   netLiquidation: real("net_liquidation").notNull(),
   cash: real("cash").notNull(),
   allocationJson: text("allocation_json"),
   positionsJson: text("positions_json"),
-});
+}, (t) => [
+  uniqueIndex("idx_snapshots_date").on(t.date),
+]);

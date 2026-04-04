@@ -1,6 +1,8 @@
-import { eq, and, gte, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { schema } from "@pitwall/db";
 import type { PitwallDatabase } from "@pitwall/db";
+import { withRetry } from "../lib/retry";
+import { decrypt } from "../lib/crypto";
 
 type AISyncResult = {
   provider: string;
@@ -11,15 +13,15 @@ type AISyncResult = {
 export class AIBillingService {
   constructor(private db: PitwallDatabase) {}
 
+  private logSync(service: string, status: "success" | "failed" | "partial", recordsInserted: number, message: string, errorDetail?: string, durationMs?: number) {
+    this.db.insert(schema.syncLogs).values({ service, status, recordsInserted, message, errorDetail, durationMs }).run();
+  }
+
   async syncAnthropic(adminApiKey: string): Promise<AISyncResult> {
-    const result: AISyncResult = {
-      provider: "anthropic",
-      recordsInserted: 0,
-      errors: [],
-    };
+    const result: AISyncResult = { provider: "anthropic", recordsInserted: 0, errors: [] };
+    const start = Date.now();
 
     try {
-      // Get last synced date for incremental sync
       const lastRecord = this.db
         .select({ date: schema.aiUsageRecords.date })
         .from(schema.aiUsageRecords)
@@ -31,82 +33,60 @@ export class AIBillingService {
       const startDate = lastRecord?.date ?? this.getDefaultStartDate();
       const endDate = new Date().toISOString().split("T")[0];
 
-      // Fetch cost report
-      const costRes = await fetch(
-        `https://api.anthropic.com/v1/organizations/cost_report?` +
-          new URLSearchParams({
-            starting_at: `${startDate}T00:00:00Z`,
-            ending_at: `${endDate}T23:59:59Z`,
-            bucket_width: "1d",
-            group_by: "model",
-          }),
-        {
-          headers: {
-            "x-api-key": adminApiKey,
-            "anthropic-version": "2023-06-01",
-          },
-        }
-      );
-
-      if (!costRes.ok) {
-        result.errors.push(
-          `Anthropic cost API returned ${costRes.status}: ${await costRes.text()}`
-        );
-        return result;
-      }
-
-      const costData = await costRes.json();
-
-      // Fetch usage report for token counts
-      const usageRes = await fetch(
-        `https://api.anthropic.com/v1/organizations/usage_report/messages?` +
-          new URLSearchParams({
-            starting_at: `${startDate}T00:00:00Z`,
-            ending_at: `${endDate}T23:59:59Z`,
-            bucket_width: "1d",
-            group_by: "model",
-          }),
-        {
-          headers: {
-            "x-api-key": adminApiKey,
-            "anthropic-version": "2023-06-01",
-          },
-        }
+      const costData = await withRetry(
+        async () => {
+          const res = await fetch(
+            `https://api.anthropic.com/v1/organizations/cost_report?` +
+              new URLSearchParams({
+                starting_at: `${startDate}T00:00:00Z`,
+                ending_at: `${endDate}T23:59:59Z`,
+                bucket_width: "1d",
+                group_by: "model",
+              }),
+            { headers: { "x-api-key": adminApiKey, "anthropic-version": "2023-06-01" } }
+          );
+          if (!res.ok) throw new Error(`Anthropic cost API returned ${res.status}`);
+          return res.json();
+        },
+        { attempts: 3, delayMs: 2000, onRetry: (_, attempt) => result.errors.push(`Retry ${attempt} for Anthropic cost API`) }
       );
 
       let usageData: any = null;
-      if (usageRes.ok) {
-        usageData = await usageRes.json();
+      try {
+        usageData = await withRetry(
+          async () => {
+            const res = await fetch(
+              `https://api.anthropic.com/v1/organizations/usage_report/messages?` +
+                new URLSearchParams({
+                  starting_at: `${startDate}T00:00:00Z`,
+                  ending_at: `${endDate}T23:59:59Z`,
+                  bucket_width: "1d",
+                  group_by: "model",
+                }),
+              { headers: { "x-api-key": adminApiKey, "anthropic-version": "2023-06-01" } }
+            );
+            if (!res.ok) throw new Error(`Anthropic usage API returned ${res.status}`);
+            return res.json();
+          },
+          { attempts: 3, delayMs: 2000 }
+        );
+      } catch {
+        // Usage data is optional; cost data is sufficient
       }
 
-      // Process cost buckets
       if (costData?.data) {
         for (const bucket of costData.data) {
-          const date =
-            bucket.started_at?.split("T")[0] ?? bucket.date ?? startDate;
+          const date = bucket.started_at?.split("T")[0] ?? bucket.date ?? startDate;
           const model = bucket.model ?? "unknown";
           const cost = bucket.cost_usd ?? bucket.total_cost ?? 0;
           const externalId = `anthropic-${date}-${model}`;
 
-          // Check for duplicate
-          const existing = this.db
-            .select({ id: schema.aiUsageRecords.id })
-            .from(schema.aiUsageRecords)
-            .where(eq(schema.aiUsageRecords.externalId, externalId))
-            .get();
-
+          const existing = this.db.select({ id: schema.aiUsageRecords.id }).from(schema.aiUsageRecords).where(eq(schema.aiUsageRecords.externalId, externalId)).get();
           if (existing) continue;
 
-          // Find matching usage data for token counts
-          let inputTokens = 0;
-          let outputTokens = 0;
-          let cacheTokens = 0;
+          let inputTokens = 0, outputTokens = 0, cacheTokens = 0;
           if (usageData?.data) {
-            const match = usageData.data.find(
-              (u: any) =>
-                (u.started_at?.split("T")[0] ?? u.date) === date &&
-                u.model === model
-            );
+            const match = usageData.data.find((u: any) => (u.started_at?.split("T")[0] ?? u.date) === date && u.model === model);
             if (match) {
               inputTokens = match.input_tokens ?? match.uncached_input_tokens ?? 0;
               outputTokens = match.output_tokens ?? 0;
@@ -114,39 +94,24 @@ export class AIBillingService {
             }
           }
 
-          this.db
-            .insert(schema.aiUsageRecords)
-            .values({
-              provider: "anthropic",
-              model,
-              date,
-              inputTokens,
-              outputTokens,
-              cacheTokens,
-              cost,
-              externalId,
-              source: "api",
-            })
-            .run();
-
+          this.db.insert(schema.aiUsageRecords).values({ provider: "anthropic", model, date, inputTokens, outputTokens, cacheTokens, cost, externalId, source: "api" }).run();
           result.recordsInserted++;
         }
       }
+
+      this.logSync("anthropic", result.errors.length > 0 ? "partial" : "success", result.recordsInserted, `Synced ${result.recordsInserted} records`, undefined, Date.now() - start);
     } catch (err) {
-      result.errors.push(
-        `Anthropic sync error: ${err instanceof Error ? err.message : String(err)}`
-      );
+      const msg = err instanceof Error ? err.message : String(err);
+      result.errors.push(`Anthropic sync error: ${msg}`);
+      this.logSync("anthropic", "failed", 0, "Sync failed", msg, Date.now() - start);
     }
 
     return result;
   }
 
   async syncOpenAI(apiKey: string): Promise<AISyncResult> {
-    const result: AISyncResult = {
-      provider: "openai",
-      recordsInserted: 0,
-      errors: [],
-    };
+    const result: AISyncResult = { provider: "openai", recordsInserted: 0, errors: [] };
+    const start = Date.now();
 
     try {
       const lastRecord = this.db
@@ -159,136 +124,56 @@ export class AIBillingService {
 
       const startDate = lastRecord?.date ?? this.getDefaultStartDate();
 
-      // OpenAI usage endpoint
-      const res = await fetch(
-        `https://api.openai.com/v1/organization/usage/completions?` +
-          new URLSearchParams({
-            start_time: String(
-              Math.floor(new Date(`${startDate}T00:00:00Z`).getTime() / 1000)
-            ),
-            bucket_width: "1d",
-            group_by: ["model"].toString(),
-          }),
-        {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-          },
-        }
-      );
-
-      if (!res.ok) {
-        // Fallback: try the older /v1/usage endpoint
-        const fallbackRes = await fetch(
-          `https://api.openai.com/v1/usage?date=${startDate}`,
-          {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          }
-        );
-
-        if (!fallbackRes.ok) {
-          result.errors.push(
-            `OpenAI API returned ${res.status}. Fallback also failed: ${fallbackRes.status}`
+      const data = await withRetry(
+        async () => {
+          const res = await fetch(
+            `https://api.openai.com/v1/organization/usage/completions?` +
+              new URLSearchParams({
+                start_time: String(Math.floor(new Date(`${startDate}T00:00:00Z`).getTime() / 1000)),
+                bucket_width: "1d",
+                group_by: "model",
+              }),
+            { headers: { Authorization: `Bearer ${apiKey}` } }
           );
-          return result;
-        }
-
-        const fallbackData = await fallbackRes.json();
-        if (fallbackData?.data) {
-          for (const item of fallbackData.data) {
-            const date = startDate;
-            const model = item.snapshot_id ?? item.model ?? "unknown";
-            const inputTokens = item.n_context_tokens_total ?? 0;
-            const outputTokens = item.n_generated_tokens_total ?? 0;
-            const externalId = `openai-${date}-${model}`;
-
-            const existing = this.db
-              .select({ id: schema.aiUsageRecords.id })
-              .from(schema.aiUsageRecords)
-              .where(eq(schema.aiUsageRecords.externalId, externalId))
-              .get();
-            if (existing) continue;
-
-            this.db
-              .insert(schema.aiUsageRecords)
-              .values({
-                provider: "openai",
-                model,
-                date,
-                inputTokens,
-                outputTokens,
-                cost: 0, // older endpoint doesn't include cost
-                externalId,
-                source: "api",
-              })
-              .run();
-            result.recordsInserted++;
-          }
-        }
-        return result;
-      }
-
-      const data = await res.json();
+          if (!res.ok) throw new Error(`OpenAI API returned ${res.status}`);
+          return res.json();
+        },
+        { attempts: 3, delayMs: 2000, onRetry: (_, attempt) => result.errors.push(`Retry ${attempt} for OpenAI API`) }
+      );
 
       if (data?.data) {
         for (const bucket of data.data) {
-          const date = new Date((bucket.start_time ?? 0) * 1000)
-            .toISOString()
-            .split("T")[0];
-
-          for (const result_item of bucket.results ?? []) {
-            const model = result_item.model ?? "unknown";
-            const inputTokens = result_item.input_tokens ?? 0;
-            const outputTokens = result_item.output_tokens ?? 0;
-            const cost =
-              (result_item.input_cost ?? 0) + (result_item.output_cost ?? 0);
+          const date = new Date((bucket.start_time ?? 0) * 1000).toISOString().split("T")[0];
+          for (const item of bucket.results ?? []) {
+            const model = item.model ?? "unknown";
+            const inputTokens = item.input_tokens ?? 0;
+            const outputTokens = item.output_tokens ?? 0;
+            const cost = ((item.input_cost ?? 0) + (item.output_cost ?? 0)) / 100;
             const externalId = `openai-${date}-${model}`;
 
-            const existing = this.db
-              .select({ id: schema.aiUsageRecords.id })
-              .from(schema.aiUsageRecords)
-              .where(eq(schema.aiUsageRecords.externalId, externalId))
-              .get();
+            const existing = this.db.select({ id: schema.aiUsageRecords.id }).from(schema.aiUsageRecords).where(eq(schema.aiUsageRecords.externalId, externalId)).get();
             if (existing) continue;
 
-            this.db
-              .insert(schema.aiUsageRecords)
-              .values({
-                provider: "openai",
-                model,
-                date,
-                inputTokens,
-                outputTokens,
-                cost: cost / 100, // API returns cents
-                externalId,
-                source: "api",
-              })
-              .run();
+            this.db.insert(schema.aiUsageRecords).values({ provider: "openai", model, date, inputTokens, outputTokens, cost, externalId, source: "api" }).run();
             result.recordsInserted++;
           }
         }
       }
+
+      this.logSync("openai", result.errors.length > 0 ? "partial" : "success", result.recordsInserted, `Synced ${result.recordsInserted} records`, undefined, Date.now() - start);
     } catch (err) {
-      result.errors.push(
-        `OpenAI sync error: ${err instanceof Error ? err.message : String(err)}`
-      );
+      const msg = err instanceof Error ? err.message : String(err);
+      result.errors.push(`OpenAI sync error: ${msg}`);
+      this.logSync("openai", "failed", 0, "Sync failed", msg, Date.now() - start);
     }
 
     return result;
   }
 
-  async syncAll(keys: {
-    anthropicAdminKey?: string;
-    openaiKey?: string;
-  }): Promise<AISyncResult[]> {
+  async syncAll(keys: { anthropicAdminKey?: string; openaiKey?: string }): Promise<AISyncResult[]> {
     const results: AISyncResult[] = [];
-
-    if (keys.anthropicAdminKey) {
-      results.push(await this.syncAnthropic(keys.anthropicAdminKey));
-    }
-    if (keys.openaiKey) {
-      results.push(await this.syncOpenAI(keys.openaiKey));
-    }
-
+    if (keys.anthropicAdminKey) results.push(await this.syncAnthropic(keys.anthropicAdminKey));
+    if (keys.openaiKey) results.push(await this.syncOpenAI(keys.openaiKey));
     return results;
   }
 

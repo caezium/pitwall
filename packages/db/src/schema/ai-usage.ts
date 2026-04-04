@@ -1,4 +1,4 @@
-import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, real, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const aiUsageRecords = sqliteTable("ai_usage_records", {
   id: text("id")
@@ -22,4 +22,8 @@ export const aiUsageRecords = sqliteTable("ai_usage_records", {
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (t) => [
+  index("idx_ai_usage_date").on(t.date),
+  index("idx_ai_usage_provider").on(t.provider),
+  uniqueIndex("idx_ai_usage_external_id").on(t.externalId),
+]);
