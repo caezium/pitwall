@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { formatCurrency, formatDate } from "@pitwall/shared";
 
 export default function KartingPage() {
-  const expenses = trpc.expenses.list.useQuery({ domain: "karting" as any });
+  const expenses = trpc.expenses.list.useQuery({ domain: "karting" });
   const categories = trpc.expenses.categories.useQuery({ domain: "karting" });
 
   // Calculate stats

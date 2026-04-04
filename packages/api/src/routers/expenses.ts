@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, desc, and, gte, lte, like } from "drizzle-orm";
+import { eq, desc, and, gte, lte, like, sql } from "drizzle-orm";
 import { schema } from "@pitwall/db";
 import { router, publicProcedure } from "../trpc";
 
@@ -24,6 +24,27 @@ export const expensesRouter = router({
       const filters = input;
       const conditions = [];
 
+      if (filters.domain) {
+        // Filter by category domain — join categories to match
+        const categoryIds = ctx.db
+          .select({ id: schema.categories.id })
+          .from(schema.categories)
+          .where(eq(schema.categories.domain, filters.domain))
+          .all()
+          .map((c) => c.id);
+
+        if (categoryIds.length > 0) {
+          conditions.push(
+            sql`${schema.expenses.categoryId} IN (${sql.join(
+              categoryIds.map((id) => sql`${id}`),
+              sql`, `
+            )})`
+          );
+        } else {
+          // No categories for this domain — return empty
+          return [];
+        }
+      }
       if (filters.categoryId) {
         conditions.push(eq(schema.expenses.categoryId, filters.categoryId));
       }
