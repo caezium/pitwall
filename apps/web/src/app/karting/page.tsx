@@ -2,56 +2,62 @@
 
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, formatDate } from "@pitwall/shared";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { CardSkeleton, TableSkeleton } from "@/components/skeleton";
+import { QueryError } from "@/components/error-boundary";
+import { ExportButton } from "@/components/export-button";
+
+const COLORS: Record<string, string> = {
+  "Entry Fees": "#ef4444",
+  "Tires": "#f97316",
+  "Fuel": "#eab308",
+  "Parts & Maintenance": "#a855f7",
+  "Travel": "#3b82f6",
+  "Gear": "#6366f1",
+};
 
 export default function KartingPage() {
   const expenses = trpc.expenses.list.useQuery({ domain: "karting" });
-  const categories = trpc.expenses.categories.useQuery({ domain: "karting" });
+  const exportData = trpc.export.expenses.useQuery({});
 
-  // Calculate stats
-  const totalSpend =
-    expenses.data?.reduce((s, e) => s + e.amount, 0) ?? 0;
-  const events = [
-    ...new Set(expenses.data?.map((e) => e.eventName).filter(Boolean)),
-  ];
+  if (expenses.isLoading) return <div className="space-y-4"><CardSkeleton /><CardSkeleton /><TableSkeleton /></div>;
+  if (expenses.error) return <QueryError error={expenses.error} onRetry={() => expenses.refetch()} />;
+
+  const items = expenses.data ?? [];
+  const totalSpend = items.reduce((s: number, e: any) => s + e.amount, 0);
+  const events = [...new Set(items.map((e: any) => e.eventName).filter(Boolean))];
   const costPerRace = events.length > 0 ? totalSpend / events.length : 0;
 
-  // Group by category
+  // By category for chart
   const byCategory = new Map<string, number>();
-  expenses.data?.forEach((e) => {
-    const name = e.category?.name ?? "Uncategorized";
+  items.forEach((e: any) => {
+    const name = e.category?.name ?? "Other";
     byCategory.set(name, (byCategory.get(name) ?? 0) + e.amount);
   });
+  const chartData = [...byCategory.entries()].map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount);
 
-  // Group by event
-  const byEvent = new Map<
-    string,
-    { total: number; track: string; date: string }
-  >();
-  expenses.data?.forEach((e) => {
+  // By event
+  const byEvent = new Map<string, { total: number; track: string; date: string }>();
+  items.forEach((e: any) => {
     if (e.eventName) {
-      const existing = byEvent.get(e.eventName) ?? {
-        total: 0,
-        track: e.trackName ?? "",
-        date: e.date,
-      };
+      const existing = byEvent.get(e.eventName) ?? { total: 0, track: e.trackName ?? "", date: e.date };
       existing.total += e.amount;
       byEvent.set(e.eventName, existing);
     }
   });
 
-  const maxCategorySpend = Math.max(...byCategory.values(), 1);
-
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Karting</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Karting</h2>
+        <ExportButton data={exportData.data} filename="karting-expenses.csv" />
+      </div>
 
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
           <p className="text-sm text-zinc-400">Total Spend</p>
-          <p className="text-3xl font-bold mt-1">
-            {formatCurrency(totalSpend)}
-          </p>
+          <p className="text-3xl font-bold mt-1">{formatCurrency(totalSpend)}</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
           <p className="text-sm text-zinc-400">Events</p>
@@ -59,37 +65,30 @@ export default function KartingPage() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
           <p className="text-sm text-zinc-400">Avg Cost / Race</p>
-          <p className="text-3xl font-bold mt-1">
-            {formatCurrency(costPerRace)}
-          </p>
+          <p className="text-3xl font-bold mt-1">{formatCurrency(costPerRace)}</p>
         </div>
       </div>
 
-      {/* By Category */}
-      {byCategory.size > 0 && (
+      {/* Category Bar Chart */}
+      {chartData.length > 0 && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            Spend by Category
-          </h3>
-          <div className="space-y-3">
-            {[...byCategory.entries()]
-              .sort((a, b) => b[1] - a[1])
-              .map(([name, amount]) => (
-                <div key={name} className="flex items-center gap-3">
-                  <span className="w-40 text-sm text-zinc-400">{name}</span>
-                  <div className="flex-1 h-5 bg-zinc-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-red-500 rounded-full"
-                      style={{
-                        width: `${(amount / maxCategorySpend) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="w-24 text-right font-mono text-sm">
-                    {formatCurrency(amount)}
-                  </span>
-                </div>
-              ))}
+          <h3 className="text-lg font-semibold mb-4">Spend by Category</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ left: 100 }}>
+                <XAxis type="number" tickFormatter={(v) => `$${v}`} stroke="#52525b" fontSize={12} />
+                <YAxis type="category" dataKey="name" stroke="#52525b" fontSize={12} width={90} />
+                <Tooltip
+                  formatter={(value: any) => formatCurrency(value)}
+                  contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: 8 }}
+                />
+                <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={COLORS[entry.name] ?? "#71717a"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
@@ -109,20 +108,11 @@ export default function KartingPage() {
             </thead>
             <tbody>
               {[...byEvent.entries()].map(([event, data]) => (
-                <tr
-                  key={event}
-                  className="border-b border-zinc-800/50 hover:bg-zinc-800/30"
-                >
+                <tr key={event} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                   <td className="px-4 py-3 text-sm">{event}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-400">
-                    {data.track || "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-zinc-400">
-                    {formatDate(data.date)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right font-mono text-red-400">
-                    {formatCurrency(data.total)}
-                  </td>
+                  <td className="px-4 py-3 text-sm text-zinc-400">{data.track || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-400">{formatDate(data.date)}</td>
+                  <td className="px-4 py-3 text-sm text-right font-mono text-red-400">{formatCurrency(data.total)}</td>
                 </tr>
               ))}
             </tbody>
@@ -130,12 +120,9 @@ export default function KartingPage() {
         </div>
       )}
 
-      {expenses.data?.length === 0 && (
+      {items.length === 0 && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-          <p className="text-zinc-500 text-sm">
-            No karting expenses yet. Add expenses with a karting category to see
-            them here.
-          </p>
+          <p className="text-zinc-500 text-sm">No karting expenses yet. Add expenses with a karting category to see them here.</p>
         </div>
       )}
     </div>
