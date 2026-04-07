@@ -5,7 +5,7 @@ export const aiUsageRecords = sqliteTable("ai_usage_records", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   provider: text("provider", {
-    enum: ["openai", "anthropic", "google", "other"],
+    enum: ["openai", "anthropic", "openrouter", "google", "other"],
   }).notNull(),
   model: text("model").notNull(),
   date: text("date").notNull(),

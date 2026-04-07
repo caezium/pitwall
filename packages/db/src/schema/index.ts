@@ -5,3 +5,4 @@ export * from "./budgets";
 export * from "./settings";
 export * from "./recurring";
 export * from "./sync-log";
+export * from "./subscriptions";

@@ -11,11 +11,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const navItems = [
   { href: "/", label: "Overview" },
   { href: "/expenses", label: "Expenses" },
+  { href: "/quick-entry", label: "Quick Entry" },
   { href: "/karting", label: "Karting" },
   { href: "/ai-costs", label: "AI Costs" },
+  { href: "/subscriptions", label: "Subscriptions" },
   { href: "/investments", label: "Investments" },
   { href: "/budgets", label: "Budgets" },
   { href: "/recurring", label: "Recurring" },
+  { href: "/import", label: "Import CSV" },
   { href: "/settings", label: "Settings" },
 ];
 

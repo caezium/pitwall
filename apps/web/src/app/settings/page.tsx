@@ -17,6 +17,12 @@ const settingKeys = [
     description: "Required for syncing OpenAI usage data",
   },
   {
+    key: "openrouter_api_key",
+    label: "OpenRouter API Key",
+    placeholder: "sk-or-...",
+    description: "Required for syncing OpenRouter usage data",
+  },
+  {
     key: "ibkr_gateway_host",
     label: "IBKR Gateway Host",
     placeholder: "127.0.0.1",

@@ -170,10 +170,63 @@ export class AIBillingService {
     return result;
   }
 
-  async syncAll(keys: { anthropicAdminKey?: string; openaiKey?: string }): Promise<AISyncResult[]> {
+  async syncOpenRouter(apiKey: string): Promise<AISyncResult> {
+    const result: AISyncResult = { provider: "openrouter", recordsInserted: 0, errors: [] };
+    const start = Date.now();
+
+    try {
+      // OpenRouter /api/v1/auth/key endpoint returns credits info
+      // /api/v1/activity endpoint returns usage history
+      const data = await withRetry(
+        async () => {
+          const res = await fetch("https://openrouter.ai/api/v1/activity", {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!res.ok) throw new Error(`OpenRouter API returned ${res.status}`);
+          return res.json();
+        },
+        { attempts: 3, delayMs: 2000 }
+      );
+
+      if (data?.data) {
+        for (const item of data.data) {
+          const date = item.created_at ? new Date(item.created_at * 1000).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+          const model = item.model ?? "unknown";
+          const cost = item.total_cost ?? item.usage ?? 0;
+          const externalId = `openrouter-${item.id ?? `${date}-${model}-${cost}`}`;
+
+          const existing = this.db.select({ id: schema.aiUsageRecords.id }).from(schema.aiUsageRecords).where(eq(schema.aiUsageRecords.externalId, externalId)).get();
+          if (existing) continue;
+
+          this.db.insert(schema.aiUsageRecords).values({
+            provider: "openrouter",
+            model,
+            date,
+            inputTokens: item.tokens_prompt ?? item.native_tokens_prompt ?? 0,
+            outputTokens: item.tokens_completion ?? item.native_tokens_completion ?? 0,
+            cost,
+            externalId,
+            source: "api",
+          }).run();
+          result.recordsInserted++;
+        }
+      }
+
+      this.logSync("openrouter", result.errors.length > 0 ? "partial" : "success", result.recordsInserted, `Synced ${result.recordsInserted} records`, undefined, Date.now() - start);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      result.errors.push(`OpenRouter sync error: ${msg}`);
+      this.logSync("openrouter", "failed", 0, "Sync failed", msg, Date.now() - start);
+    }
+
+    return result;
+  }
+
+  async syncAll(keys: { anthropicAdminKey?: string; openaiKey?: string; openrouterKey?: string }): Promise<AISyncResult[]> {
     const results: AISyncResult[] = [];
     if (keys.anthropicAdminKey) results.push(await this.syncAnthropic(keys.anthropicAdminKey));
     if (keys.openaiKey) results.push(await this.syncOpenAI(keys.openaiKey));
+    if (keys.openrouterKey) results.push(await this.syncOpenRouter(keys.openrouterKey));
     return results;
   }
 

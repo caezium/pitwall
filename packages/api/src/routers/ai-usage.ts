@@ -118,16 +118,23 @@ export const aiUsageRouter = router({
       .where(eq(schema.appSettings.key, "openai_api_key"))
       .get();
 
+    const openrouterKey = ctx.db
+      .select({ value: schema.appSettings.value })
+      .from(schema.appSettings)
+      .where(eq(schema.appSettings.key, "openrouter_api_key"))
+      .get();
+
     return service.syncAll({
       anthropicAdminKey: anthropicKey?.value,
       openaiKey: openaiKey?.value,
+      openrouterKey: openrouterKey?.value,
     });
   }),
 
   create: publicProcedure
     .input(
       z.object({
-        provider: z.enum(["openai", "anthropic", "google", "other"]),
+        provider: z.enum(["openai", "anthropic", "openrouter", "google", "other"]),
         model: z.string().min(1),
         date: z.string(),
         inputTokens: z.number().int().min(0).default(0),
