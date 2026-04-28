@@ -33,16 +33,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--bg-primary)" }}>
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-bold text-white text-center mb-2">Pitwall</h1>
-        <p className="text-zinc-500 text-center text-sm mb-8">
-          Personal finance command center
-        </p>
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold mb-4">
+            P
+          </div>
+          <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>Pitwall</h1>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+            Personal finance command center
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="finance-card space-y-4">
           <div>
-            <label htmlFor="passcode" className="block text-sm text-zinc-400 mb-2">
+            <label htmlFor="passcode" className="block text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>
               Passcode
             </label>
             <input
@@ -53,26 +58,24 @@ export default function LoginPage() {
               placeholder="Enter your passcode"
               autoFocus
               required
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-xl px-4 py-3 text-sm"
+              style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
             />
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-sm" style={{ color: "var(--accent-red)" }}>{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading || !passcode}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-40"
+            style={{ background: "var(--accent-blue)", color: "#fff" }}
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
-
-        <p className="text-zinc-600 text-xs text-center mt-4">
-          Set PITWALL_PASSCODE in your .env file
-        </p>
       </div>
     </div>
   );

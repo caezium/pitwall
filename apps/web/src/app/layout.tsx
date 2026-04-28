@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-zinc-950 text-zinc-100 min-h-screen">
+      <body style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }} className="min-h-screen antialiased">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

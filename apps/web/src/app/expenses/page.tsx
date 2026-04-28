@@ -4,32 +4,30 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, formatDate } from "@pitwall/shared";
 import { TagManager } from "@/components/tag-manager";
-import { ReceiptUpload } from "@/components/receipt-upload";
 import { Pagination } from "@/components/pagination";
 import { ExportButton } from "@/components/export-button";
-import { PageSkeleton } from "@/components/skeleton";
-import { QueryError } from "@/components/error-boundary";
 
 const LIMIT = 25;
+
+const DOMAIN_COLORS: Record<string, string> = {
+  karting: "#f87171",
+  ai: "#4f7df7",
+  investment: "#34d399",
+  general: "#8888a0",
+};
 
 export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [offset, setOffset] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
   const utils = trpc.useUtils();
 
-  const expenses = trpc.expenses.list.useQuery({ limit: LIMIT, offset });
+  const expenses = trpc.expenses.list.useQuery({ limit: LIMIT, offset, search: search || undefined });
   const categories = trpc.expenses.categories.useQuery();
   const exportData = trpc.export.expenses.useQuery({});
-  const updateExpense = trpc.expenses.update.useMutation({
-    onSuccess: () => utils.expenses.list.invalidate(),
-  });
   const createExpense = trpc.expenses.create.useMutation({
-    onSuccess: () => {
-      utils.expenses.list.invalidate();
-      setShowForm(false);
-      setSelectedTags([]);
-    },
+    onSuccess: () => { utils.expenses.list.invalidate(); setShowForm(false); setSelectedTags([]); },
   });
   const deleteExpense = trpc.expenses.delete.useMutation({
     onSuccess: () => utils.expenses.list.invalidate(),
@@ -50,129 +48,176 @@ export default function ExpensesPage() {
     });
   };
 
-  if (expenses.isLoading) return <PageSkeleton />;
-  if (expenses.error) return <QueryError error={expenses.error} onRetry={() => expenses.refetch()} />;
+  // Group transactions by date
+  const grouped = new Map<string, any[]>();
+  (expenses.data ?? []).forEach((e: any) => {
+    const list = grouped.get(e.date) ?? [];
+    list.push(e);
+    grouped.set(e.date, list);
+  });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Expenses</h2>
+        <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Transactions</h1>
         <div className="flex gap-2">
           <ExportButton data={exportData.data} filename="expenses.csv" />
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-medium"
+            style={{ background: "var(--accent-blue)", color: "#fff" }}
           >
-            {showForm ? "Cancel" : "Add Expense"}
+            {showForm ? "Cancel" : "+ Add"}
           </button>
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <input
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
+          placeholder="Search transactions..."
+          className="w-full rounded-xl px-4 py-3 text-sm"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+        />
+      </div>
+
+      {/* Add Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="finance-card space-y-4">
+          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>New Transaction</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              { name: "description", label: "Description", type: "text", required: true, placeholder: "What did you spend on?" },
+              { name: "amount", label: "Amount", type: "number", required: true, placeholder: "0.00", step: "0.01" },
+              { name: "date", label: "Date", type: "date", required: true, defaultValue: new Date().toISOString().split("T")[0] },
+              { name: "eventName", label: "Event", type: "text", placeholder: "e.g. Round 3" },
+              { name: "trackName", label: "Track", type: "text", placeholder: "e.g. NJMP" },
+            ].map((field) => (
+              <div key={field.name}>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>{field.label}</label>
+                <input
+                  name={field.name}
+                  type={field.type}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  step={field.step}
+                  defaultValue={field.defaultValue}
+                  className="w-full rounded-xl px-3 py-2.5 text-sm"
+                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                />
+              </div>
+            ))}
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Description</label>
-              <input name="description" required className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1">Amount</label>
-              <input name="amount" type="number" step="0.01" required className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1">Date</label>
-              <input name="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} required className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1">Category</label>
-              <select name="categoryId" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Category</label>
+              <select name="categoryId" className="w-full rounded-xl px-3 py-2.5 text-sm" style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
                 <option value="">Uncategorized</option>
-                {categories.data?.map((cat: any) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
+                {categories.data?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1">Event Name</label>
-              <input name="eventName" placeholder="e.g. Spring Series Round 3" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1">Track Name</label>
-              <input name="trackName" placeholder="e.g. NJMP" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-zinc-400 mb-1">Notes</label>
-            <textarea name="notes" rows={2} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
+            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Notes</label>
+            <textarea name="notes" rows={2} className="w-full rounded-xl px-3 py-2.5 text-sm" style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
           </div>
           <TagManager selectedTagIds={selectedTags} onChange={setSelectedTags} />
-          <button type="submit" disabled={createExpense.isPending} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors disabled:opacity-50">
-            {createExpense.isPending ? "Saving..." : "Save Expense"}
+          <button
+            type="submit"
+            disabled={createExpense.isPending}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium"
+            style={{ background: "var(--accent-green)", color: "#000" }}
+          >
+            {createExpense.isPending ? "Saving..." : "Save Transaction"}
           </button>
         </form>
       )}
 
-      {/* Expense List */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        {expenses.data?.length === 0 ? (
-          <p className="p-6 text-zinc-500 text-sm">No expenses yet. Click &quot;Add Expense&quot; to get started.</p>
-        ) : (
-          <>
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-zinc-800 text-left text-xs text-zinc-500">
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Tags</th>
-                  <th className="px-4 py-3">Receipt</th>
-                  <th className="px-4 py-3 text-right">Amount</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.data?.map((expense: any) => (
-                  <tr key={expense.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                    <td className="px-4 py-3 text-sm text-zinc-400">{formatDate(expense.date)}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {expense.description}
-                      {expense.eventName && <span className="text-xs text-zinc-500 ml-2">{expense.eventName}</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-400">{expense.category?.name ?? "-"}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex gap-1 flex-wrap">
+      {/* Transaction List — Grouped by Date */}
+      {expenses.isLoading ? (
+        <div className="space-y-3 animate-pulse">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-16 rounded-xl" style={{ background: "var(--bg-card)" }} />
+          ))}
+        </div>
+      ) : grouped.size === 0 ? (
+        <div className="finance-card flex flex-col items-center py-16">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl mb-4" style={{ background: "var(--bg-input)" }}>
+            📋
+          </div>
+          <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No transactions yet</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Click &quot;+ Add&quot; to record your first expense</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {[...grouped.entries()].map(([date, items]) => (
+            <div key={date}>
+              <p className="text-xs font-medium px-1 py-2 sticky top-0 z-10" style={{ color: "var(--text-muted)", background: "var(--bg-primary)" }}>
+                {formatDate(date)}
+              </p>
+              <div className="finance-card !p-0 overflow-hidden">
+                {items.map((expense: any) => (
+                  <div
+                    key={expense.id}
+                    className="flex items-center gap-3 px-4 py-3.5 group"
+                    style={{ borderBottom: "1px solid var(--border)" }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm flex-shrink-0 font-medium"
+                      style={{
+                        background: (DOMAIN_COLORS[expense.category?.domain ?? "general"] ?? "#555") + "18",
+                        color: DOMAIN_COLORS[expense.category?.domain ?? "general"] ?? "#555",
+                      }}
+                    >
+                      {expense.description.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                        {expense.description}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                          {expense.category?.name ?? "Uncategorized"}
+                        </span>
+                        {expense.eventName && (
+                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
+                            {expense.eventName}
+                          </span>
+                        )}
                         {expense.expenseTags?.map((et: any) => (
-                          <span key={et.tag.id} className="px-1.5 py-0.5 bg-zinc-800 rounded text-xs text-zinc-400">{et.tag.name}</span>
+                          <span key={et.tag.id} className="text-xs px-1.5 py-0.5 rounded" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
+                            {et.tag.name}
+                          </span>
                         ))}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <ReceiptUpload
-                        expenseId={expense.id}
-                        currentUrl={expense.receiptUrl}
-                        onUploaded={(url) => updateExpense.mutate({ id: expense.id, receiptUrl: url } as any)}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-mono text-red-400">-{formatCurrency(expense.amount)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => deleteExpense.mutate({ id: expense.id })} className="text-xs text-zinc-600 hover:text-red-400 transition-colors">Delete</button>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-semibold mono" style={{ color: "var(--accent-red)" }}>
+                        −{formatCurrency(expense.amount)}
+                      </p>
+                      <button
+                        onClick={() => deleteExpense.mutate({ id: expense.id })}
+                        className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-            <div className="p-4 border-t border-zinc-800">
-              <Pagination
-                offset={offset}
-                limit={LIMIT}
-                hasMore={(expenses.data?.length ?? 0) >= LIMIT}
-                onPrev={() => setOffset(Math.max(0, offset - LIMIT))}
-                onNext={() => setOffset(offset + LIMIT)}
-              />
+              </div>
             </div>
-          </>
-        )}
-      </div>
+          ))}
+          <Pagination
+            offset={offset}
+            limit={LIMIT}
+            hasMore={(expenses.data?.length ?? 0) >= LIMIT}
+            onPrev={() => setOffset(Math.max(0, offset - LIMIT))}
+            onNext={() => setOffset(offset + LIMIT)}
+          />
+        </div>
+      )}
     </div>
   );
 }
