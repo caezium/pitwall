@@ -72,22 +72,27 @@ export default function ImportPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <h2 className="text-2xl font-bold">Import CSV</h2>
+      <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Import CSV</h1>
 
       {/* Step 1: Upload */}
       {step === "upload" && (
         <div className="space-y-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
+          <div className="finance-card space-y-5">
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Import Type</label>
+              <label className="block text-xs font-medium uppercase tracking-wide mb-2" style={{ color: "var(--text-muted)" }}>
+                Import Type
+              </label>
               <div className="flex gap-2">
                 {(["expenses", "ai_usage", "trades"] as const).map((t) => (
                   <button
                     key={t}
                     onClick={() => setTarget(t)}
-                    className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                      target === t ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                    }`}
+                    className="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                    style={{
+                      background: target === t ? "var(--accent-blue)" : "var(--bg-input)",
+                      color: target === t ? "#fff" : "var(--text-secondary)",
+                      border: target === t ? "none" : "1px solid var(--border)",
+                    }}
                   >
                     {t === "ai_usage" ? "AI Usage" : t === "trades" ? "IBKR Trades" : "Expenses"}
                   </button>
@@ -96,18 +101,29 @@ export default function ImportPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Upload CSV File</label>
-              <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-zinc-500 transition-colors">
+              <label className="block text-xs font-medium uppercase tracking-wide mb-2" style={{ color: "var(--text-muted)" }}>
+                Upload CSV File
+              </label>
+              <label
+                className="flex items-center justify-center w-full h-32 rounded-2xl cursor-pointer transition-colors"
+                style={{
+                  border: "2px dashed var(--border)",
+                  background: "var(--bg-input)",
+                }}
+              >
                 <div className="text-center">
                   {fileName ? (
                     <>
-                      <p className="text-sm text-zinc-300">{fileName}</p>
-                      <p className="text-xs text-zinc-500 mt-1">{csvContent.split("\n").length - 1} rows detected</p>
+                      <p className="text-sm" style={{ color: "var(--text-primary)" }}>{fileName}</p>
+                      <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>{csvContent.split("\n").length - 1} rows detected</p>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm text-zinc-400">Click to upload or drag & drop</p>
-                      <p className="text-xs text-zinc-600 mt-1">CSV files only</p>
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl mx-auto mb-2" style={{ background: "var(--bg-card)" }}>
+                        📄
+                      </div>
+                      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Click to upload or drag & drop</p>
+                      <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>CSV files only</p>
                     </>
                   )}
                 </div>
@@ -116,26 +132,30 @@ export default function ImportPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Or paste CSV content</label>
+              <label className="block text-xs font-medium uppercase tracking-wide mb-2" style={{ color: "var(--text-muted)" }}>
+                Or Paste CSV Content
+              </label>
               <textarea
                 value={csvContent}
                 onChange={(e) => setCsvContent(e.target.value)}
                 placeholder="date,description,amount&#10;2024-03-15,Entry fee,350&#10;2024-03-15,Tires,450"
                 rows={6}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono"
+                className="w-full rounded-xl px-3 py-2.5 text-sm mono"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
               />
             </div>
 
             <button
               onClick={handleParse}
               disabled={!csvContent || parseMutation.isPending}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+              style={{ background: "var(--accent-blue)", color: "#fff" }}
             >
               {parseMutation.isPending ? "Parsing..." : "Preview & Map Columns"}
             </button>
 
             {parseMutation.error && (
-              <p className="text-red-400 text-sm">Parse error: {parseMutation.error.message}</p>
+              <p className="text-sm" style={{ color: "var(--accent-red)" }}>Parse error: {parseMutation.error.message}</p>
             )}
           </div>
         </div>
@@ -144,21 +164,22 @@ export default function ImportPage() {
       {/* Step 2: Column Mapping */}
       {step === "map" && preview && (
         <div className="space-y-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
+          <div className="finance-card space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Map Columns</h3>
-              <p className="text-sm text-zinc-500">{preview.rowCount} rows found</p>
+              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Map Columns</p>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{preview.rowCount} rows found</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {targetFields[target].map((field) => (
                 <div key={field} className="flex items-center gap-3">
-                  <span className="text-sm text-zinc-400 w-28 text-right">{field}</span>
-                  <span className="text-zinc-600">→</span>
+                  <span className="text-sm w-28 text-right mono" style={{ color: "var(--text-secondary)" }}>{field}</span>
+                  <span style={{ color: "var(--text-muted)" }}>→</span>
                   <select
                     value={mapping[field] ?? ""}
                     onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
-                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm"
+                    className="flex-1 rounded-xl px-3 py-2 text-sm"
+                    style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                   >
                     <option value="">-- skip --</option>
                     {preview.headers.map((h) => (
@@ -171,22 +192,24 @@ export default function ImportPage() {
           </div>
 
           {/* Preview Table */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <h3 className="text-sm font-semibold p-4 pb-0 text-zinc-400">Preview (first 5 rows)</h3>
+          <div className="finance-card !p-0 overflow-hidden">
+            <p className="text-xs font-medium uppercase tracking-wide px-5 pt-4" style={{ color: "var(--text-muted)" }}>
+              Preview (first 5 rows)
+            </p>
             <div className="overflow-x-auto">
               <table className="w-full mt-2">
                 <thead>
-                  <tr className="border-b border-zinc-800 text-left text-xs text-zinc-500">
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
                     {preview.headers.map((h) => (
-                      <th key={h} className="px-3 py-2">{h}</th>
+                      <th key={h} className="px-4 py-2 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {preview.preview.map((row, i) => (
-                    <tr key={i} className="border-b border-zinc-800/50">
+                    <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
                       {preview.headers.map((h) => (
-                        <td key={h} className="px-3 py-2 text-xs text-zinc-400 font-mono">{row[h] ?? ""}</td>
+                        <td key={h} className="px-4 py-2.5 text-xs mono" style={{ color: "var(--text-secondary)" }}>{row[h] ?? ""}</td>
                       ))}
                     </tr>
                   ))}
@@ -196,11 +219,18 @@ export default function ImportPage() {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={() => setStep("upload")} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm">Back</button>
+            <button
+              onClick={() => setStep("upload")}
+              className="px-4 py-2.5 rounded-xl text-sm font-medium"
+              style={{ background: "var(--bg-input)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+            >
+              Back
+            </button>
             <button
               onClick={handleExecute}
               disabled={executeMutation.isPending}
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+              style={{ background: "var(--accent-green)", color: "#000" }}
             >
               {executeMutation.isPending ? "Importing..." : `Import ${preview.rowCount} rows`}
             </button>
@@ -210,32 +240,41 @@ export default function ImportPage() {
 
       {/* Step 3: Result */}
       {step === "result" && result && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-lg font-semibold">Import Complete</h3>
+        <div className="finance-card space-y-5">
+          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Import Complete</p>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <p className="text-3xl font-bold text-green-400">{result.imported}</p>
-              <p className="text-sm text-zinc-500">Imported</p>
+              <p className="balance-lg" style={{ color: "var(--accent-green)" }}>{result.imported}</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Imported</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-yellow-400">{result.skipped}</p>
-              <p className="text-sm text-zinc-500">Skipped</p>
+              <p className="balance-lg" style={{ color: "#f59e0b" }}>{result.skipped}</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Skipped</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-red-400">{result.errors.length}</p>
-              <p className="text-sm text-zinc-500">Errors</p>
+              <p className="balance-lg" style={{ color: "var(--accent-red)" }}>{result.errors.length}</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Errors</p>
             </div>
           </div>
 
           {result.errors.length > 0 && (
-            <div className="bg-red-950/30 border border-red-900/50 rounded-lg p-4 max-h-40 overflow-y-auto">
+            <div
+              className="rounded-xl p-4 max-h-40 overflow-y-auto"
+              style={{ background: "rgba(248, 113, 113, 0.08)", border: "1px solid rgba(248, 113, 113, 0.2)" }}
+            >
               {result.errors.map((err, i) => (
-                <p key={i} className="text-xs text-red-400">{err}</p>
+                <p key={i} className="text-xs" style={{ color: "var(--accent-red)" }}>{err}</p>
               ))}
             </div>
           )}
 
-          <button onClick={handleReset} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">Import More</button>
+          <button
+            onClick={handleReset}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium"
+            style={{ background: "var(--accent-blue)", color: "#fff" }}
+          >
+            Import More
+          </button>
         </div>
       )}
     </div>

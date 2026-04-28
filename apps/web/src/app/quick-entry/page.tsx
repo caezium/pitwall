@@ -75,7 +75,7 @@ export default function QuickEntryPage() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, rowIndex: number, field: string) => {
-    // Tab from amount → next row's description
+    // Tab from amount -> next row's description
     if (e.key === "Tab" && !e.shiftKey && field === "notes") {
       e.preventDefault();
       const nextIdx = rowIndex + 1;
@@ -84,7 +84,7 @@ export default function QuickEntryPage() {
       }
     }
 
-    // Enter on amount → save row and move to next
+    // Enter on amount -> save row and move to next
     if (e.key === "Enter" && field === "amount") {
       e.preventDefault();
       saveRow(rowIndex);
@@ -153,23 +153,33 @@ export default function QuickEntryPage() {
     .filter((r) => r.description && r.amount)
     .reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
 
+  const inputStyle = {
+    background: "transparent",
+    border: "none",
+    color: "var(--text-primary)",
+    outline: "none",
+  };
+
+  const inputFocusStyle = "focus:bg-[var(--bg-input)] rounded";
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Quick Entry</h2>
-          <p className="text-sm text-zinc-500 mt-1">
+          <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Quick Entry</h1>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
             Spreadsheet-style bulk expense entry. Tab through fields, Enter to save a row.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-zinc-500">
+          <span className="text-sm mono" style={{ color: "var(--text-muted)" }}>
             {savedCount} saved &middot; {unsavedCount} pending &middot; {formatCurrency(totalAmount)} total
           </span>
           <button
             onClick={saveAll}
             disabled={saving || unsavedCount === 0}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+            style={{ background: "var(--accent-green)", color: "#000" }}
           >
             {saving ? "Saving..." : `Save All (${unsavedCount})`}
           </button>
@@ -177,10 +187,10 @@ export default function QuickEntryPage() {
       </div>
 
       {/* Quick fill bar */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-center gap-4 text-sm">
-        <span className="text-zinc-500">Quick fill:</span>
+      <div className="finance-card flex items-center gap-4 !py-3">
+        <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Quick fill</span>
         <div className="flex items-center gap-2">
-          <label className="text-zinc-500 text-xs">Date</label>
+          <label className="text-xs" style={{ color: "var(--text-muted)" }}>Date</label>
           <input
             type="date"
             defaultValue={new Date().toISOString().split("T")[0]}
@@ -189,11 +199,12 @@ export default function QuickEntryPage() {
                 prev.map((r) => (r.saved ? r : { ...r, date: e.target.value }))
               );
             }}
-            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs"
+            className="rounded-lg px-2 py-1 text-xs"
+            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-zinc-500 text-xs">Category</label>
+          <label className="text-xs" style={{ color: "var(--text-muted)" }}>Category</label>
           <select
             value={lastCategory}
             onChange={(e) => {
@@ -202,7 +213,8 @@ export default function QuickEntryPage() {
                 prev.map((r) => (r.saved || r.categoryId ? r : { ...r, categoryId: e.target.value }))
               );
             }}
-            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs"
+            className="rounded-lg px-2 py-1 text-xs"
+            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
           >
             <option value="">--</option>
             {categories.data?.map((c: any) => (
@@ -211,50 +223,53 @@ export default function QuickEntryPage() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-zinc-500 text-xs">Event</label>
+          <label className="text-xs" style={{ color: "var(--text-muted)" }}>Event</label>
           <input
             value={lastEvent}
             onChange={(e) => setLastEvent(e.target.value)}
             placeholder="Event name"
-            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs w-36"
+            className="rounded-lg px-2 py-1 text-xs w-36"
+            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-zinc-500 text-xs">Track</label>
+          <label className="text-xs" style={{ color: "var(--text-muted)" }}>Track</label>
           <input
             value={lastTrack}
             onChange={(e) => setLastTrack(e.target.value)}
             placeholder="Track"
-            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs w-28"
+            className="rounded-lg px-2 py-1 text-xs w-28"
+            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
           />
         </div>
       </div>
 
       {/* Spreadsheet */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="finance-card !p-0 overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-zinc-800 text-left text-xs text-zinc-500">
-              <th className="px-2 py-2 w-8">#</th>
-              <th className="px-2 py-2">Description</th>
-              <th className="px-2 py-2 w-24">Amount</th>
-              <th className="px-2 py-2 w-32">Date</th>
-              <th className="px-2 py-2 w-32">Category</th>
-              <th className="px-2 py-2 w-36">Event</th>
-              <th className="px-2 py-2 w-28">Track</th>
-              <th className="px-2 py-2 w-36">Notes</th>
-              <th className="px-2 py-2 w-16"></th>
+            <tr style={{ borderBottom: "1px solid var(--border)" }}>
+              <th className="px-2 py-2.5 w-8 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>#</th>
+              <th className="px-2 py-2.5 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Description</th>
+              <th className="px-2 py-2.5 w-24 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Amount</th>
+              <th className="px-2 py-2.5 w-32 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Date</th>
+              <th className="px-2 py-2.5 w-32 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Category</th>
+              <th className="px-2 py-2.5 w-36 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Event</th>
+              <th className="px-2 py-2.5 w-28 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Track</th>
+              <th className="px-2 py-2.5 w-36 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Notes</th>
+              <th className="px-2 py-2.5 w-16" />
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
               <tr
                 key={row.id}
-                className={`border-b border-zinc-800/30 ${
-                  row.saved ? "bg-green-950/20" : ""
-                }`}
+                style={{
+                  borderBottom: "1px solid var(--border)",
+                  background: row.saved ? "rgba(52, 211, 153, 0.06)" : "transparent",
+                }}
               >
-                <td className="px-2 py-1 text-xs text-zinc-600">{i + 1}</td>
+                <td className="px-2 py-1 text-xs" style={{ color: "var(--text-muted)" }}>{i + 1}</td>
                 <td className="px-1 py-1">
                   <input
                     ref={(el) => { descRefs.current[i] = el; }}
@@ -263,7 +278,11 @@ export default function QuickEntryPage() {
                     onKeyDown={(e) => handleKeyDown(e, i, "description")}
                     disabled={row.saved}
                     placeholder="What did you spend on?"
-                    className="w-full bg-transparent border-0 px-1 py-1 text-sm focus:outline-none focus:bg-zinc-800/50 rounded disabled:text-zinc-500"
+                    className="w-full px-1 py-1 text-sm rounded"
+                    style={{
+                      ...inputStyle,
+                      color: row.saved ? "var(--text-muted)" : "var(--text-primary)",
+                    }}
                   />
                 </td>
                 <td className="px-1 py-1">
@@ -275,7 +294,11 @@ export default function QuickEntryPage() {
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    className="w-full bg-transparent border-0 px-1 py-1 text-sm font-mono focus:outline-none focus:bg-zinc-800/50 rounded disabled:text-zinc-500"
+                    className="w-full px-1 py-1 text-sm mono rounded"
+                    style={{
+                      ...inputStyle,
+                      color: row.saved ? "var(--text-muted)" : "var(--text-primary)",
+                    }}
                   />
                 </td>
                 <td className="px-1 py-1">
@@ -284,7 +307,11 @@ export default function QuickEntryPage() {
                     onChange={(e) => updateRow(i, "date", e.target.value)}
                     disabled={row.saved}
                     type="date"
-                    className="w-full bg-transparent border-0 px-1 py-1 text-xs focus:outline-none focus:bg-zinc-800/50 rounded disabled:text-zinc-500"
+                    className="w-full px-1 py-1 text-xs rounded"
+                    style={{
+                      ...inputStyle,
+                      color: row.saved ? "var(--text-muted)" : "var(--text-primary)",
+                    }}
                   />
                 </td>
                 <td className="px-1 py-1">
@@ -292,7 +319,11 @@ export default function QuickEntryPage() {
                     value={row.categoryId}
                     onChange={(e) => updateRow(i, "categoryId", e.target.value)}
                     disabled={row.saved}
-                    className="w-full bg-transparent border-0 px-1 py-1 text-xs focus:outline-none focus:bg-zinc-800/50 rounded disabled:text-zinc-500"
+                    className="w-full px-1 py-1 text-xs rounded"
+                    style={{
+                      ...inputStyle,
+                      color: row.saved ? "var(--text-muted)" : "var(--text-primary)",
+                    }}
                   >
                     <option value="">--</option>
                     {categories.data?.map((c: any) => (
@@ -306,7 +337,11 @@ export default function QuickEntryPage() {
                     onChange={(e) => updateRow(i, "eventName", e.target.value)}
                     disabled={row.saved}
                     placeholder="Event"
-                    className="w-full bg-transparent border-0 px-1 py-1 text-xs focus:outline-none focus:bg-zinc-800/50 rounded disabled:text-zinc-500"
+                    className="w-full px-1 py-1 text-xs rounded"
+                    style={{
+                      ...inputStyle,
+                      color: row.saved ? "var(--text-muted)" : "var(--text-primary)",
+                    }}
                   />
                 </td>
                 <td className="px-1 py-1">
@@ -315,7 +350,11 @@ export default function QuickEntryPage() {
                     onChange={(e) => updateRow(i, "trackName", e.target.value)}
                     disabled={row.saved}
                     placeholder="Track"
-                    className="w-full bg-transparent border-0 px-1 py-1 text-xs focus:outline-none focus:bg-zinc-800/50 rounded disabled:text-zinc-500"
+                    className="w-full px-1 py-1 text-xs rounded"
+                    style={{
+                      ...inputStyle,
+                      color: row.saved ? "var(--text-muted)" : "var(--text-primary)",
+                    }}
                   />
                 </td>
                 <td className="px-1 py-1">
@@ -325,16 +364,23 @@ export default function QuickEntryPage() {
                     onKeyDown={(e) => handleKeyDown(e, i, "notes")}
                     disabled={row.saved}
                     placeholder="Notes"
-                    className="w-full bg-transparent border-0 px-1 py-1 text-xs focus:outline-none focus:bg-zinc-800/50 rounded disabled:text-zinc-500"
+                    className="w-full px-1 py-1 text-xs rounded"
+                    style={{
+                      ...inputStyle,
+                      color: row.saved ? "var(--text-muted)" : "var(--text-primary)",
+                    }}
                   />
                 </td>
                 <td className="px-1 py-1 text-center">
                   {row.saved ? (
-                    <span className="text-green-500 text-xs">Saved</span>
+                    <span className="text-xs" style={{ color: "var(--accent-green)" }}>Saved</span>
                   ) : (
                     <button
                       onClick={() => removeRow(i)}
-                      className="text-xs text-zinc-600 hover:text-red-400"
+                      className="text-xs transition-colors"
+                      style={{ color: "var(--text-muted)" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-red)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
                     >
                       x
                     </button>
@@ -347,10 +393,18 @@ export default function QuickEntryPage() {
       </div>
 
       <div className="flex gap-2">
-        <button onClick={() => addRows(5)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm">
+        <button
+          onClick={() => addRows(5)}
+          className="px-3 py-1.5 rounded-xl text-sm font-medium"
+          style={{ background: "var(--bg-input)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+        >
           + 5 rows
         </button>
-        <button onClick={() => addRows(10)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm">
+        <button
+          onClick={() => addRows(10)}
+          className="px-3 py-1.5 rounded-xl text-sm font-medium"
+          style={{ background: "var(--bg-input)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+        >
           + 10 rows
         </button>
       </div>

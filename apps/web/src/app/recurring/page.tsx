@@ -33,50 +33,83 @@ export default function RecurringPage() {
     });
   };
 
-  if (items.isLoading) return <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><CardSkeleton /><CardSkeleton /></div>;
+  if (items.isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 w-56 rounded-lg" style={{ background: "var(--bg-card)" }} />
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-28 rounded-2xl" style={{ background: "var(--bg-card)" }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (items.error) return <QueryError error={items.error} onRetry={() => items.refetch()} />;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Recurring Expenses</h2>
+        <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Recurring Expenses</h1>
         <div className="flex gap-2">
           <button
             onClick={() => processDue.mutate()}
             disabled={processDue.isPending}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+            style={{ background: "var(--accent-green)", color: "#000" }}
           >
             {processDue.isPending ? "Processing..." : "Process Due"}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-medium"
+            style={{ background: "var(--accent-blue)", color: "#fff" }}
           >
-            {showForm ? "Cancel" : "Add Recurring"}
+            {showForm ? "Cancel" : "+ Add"}
           </button>
         </div>
       </div>
 
       {processDue.data && (
-        <div className="bg-green-950/30 border border-green-900/50 rounded-xl p-4 text-sm text-green-400">
+        <div
+          className="finance-card text-sm"
+          style={{ borderColor: "rgba(52, 211, 153, 0.3)", color: "var(--accent-green)" }}
+        >
           Processed {processDue.data.processed} recurring expense(s).
         </div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="finance-card space-y-4">
+          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>New Recurring Expense</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Description</label>
-              <input name="description" required className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Description</label>
+              <input
+                name="description"
+                required
+                className="w-full rounded-xl px-3 py-2.5 text-sm"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Amount</label>
-              <input name="amount" type="number" step="0.01" required className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Amount</label>
+              <input
+                name="amount"
+                type="number"
+                step="0.01"
+                required
+                className="w-full rounded-xl px-3 py-2.5 text-sm"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Frequency</label>
-              <select name="frequency" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Frequency</label>
+              <select
+                name="frequency"
+                className="w-full rounded-xl px-3 py-2.5 text-sm"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              >
                 <option value="weekly">Weekly</option>
                 <option value="biweekly">Biweekly</option>
                 <option value="monthly">Monthly</option>
@@ -85,54 +118,87 @@ export default function RecurringPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Next Date</label>
-              <input name="nextDate" type="date" required className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" />
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Next Date</label>
+              <input
+                name="nextDate"
+                type="date"
+                required
+                className="w-full rounded-xl px-3 py-2.5 text-sm"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Category</label>
-              <select name="categoryId" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Category</label>
+              <select
+                name="categoryId"
+                className="w-full rounded-xl px-3 py-2.5 text-sm"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              >
                 <option value="">None</option>
                 {categories.data?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           </div>
-          <button type="submit" disabled={create.isPending} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={create.isPending}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+            style={{ background: "var(--accent-green)", color: "#000" }}
+          >
             {create.isPending ? "Saving..." : "Create"}
           </button>
         </form>
       )}
 
       {items.data?.length === 0 ? (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-          <p className="text-zinc-500 text-sm">No recurring expenses. These auto-create expenses on schedule.</p>
+        <div className="finance-card flex flex-col items-center py-16">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl mb-4" style={{ background: "var(--bg-input)" }}>
+            🔁
+          </div>
+          <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No recurring expenses</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>These auto-create expenses on schedule</p>
         </div>
       ) : (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="finance-card !p-0 overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-zinc-800 text-left text-xs text-zinc-500">
-                <th className="px-4 py-3">Description</th>
-                <th className="px-4 py-3">Frequency</th>
-                <th className="px-4 py-3">Next Date</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3"></th>
+              <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                <th className="px-5 py-3 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Description</th>
+                <th className="px-5 py-3 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Frequency</th>
+                <th className="px-5 py-3 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Next Date</th>
+                <th className="px-5 py-3 text-right text-xs font-medium" style={{ color: "var(--text-muted)" }}>Amount</th>
+                <th className="px-5 py-3 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Status</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
               {items.data?.map((item: any) => (
-                <tr key={item.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                  <td className="px-4 py-3 text-sm">{item.description}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-400 capitalize">{item.frequency}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-400">{formatDate(item.nextDate)}</td>
-                  <td className="px-4 py-3 text-sm text-right font-mono text-red-400">-{formatCurrency(item.amount)}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`px-2 py-0.5 rounded text-xs ${item.enabled ? "bg-green-900/50 text-green-400" : "bg-zinc-800 text-zinc-500"}`}>
+                <tr key={item.id} className="group" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td className="px-5 py-3.5 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{item.description}</td>
+                  <td className="px-5 py-3.5 text-sm capitalize" style={{ color: "var(--text-secondary)" }}>{item.frequency}</td>
+                  <td className="px-5 py-3.5 text-sm" style={{ color: "var(--text-secondary)" }}>{formatDate(item.nextDate)}</td>
+                  <td className="px-5 py-3.5 text-sm text-right mono font-semibold" style={{ color: "var(--accent-red)" }}>
+                    -{formatCurrency(item.amount)}
+                  </td>
+                  <td className="px-5 py-3.5 text-sm">
+                    <span
+                      className="px-2.5 py-0.5 rounded-lg text-xs font-medium"
+                      style={{
+                        background: item.enabled ? "rgba(52, 211, 153, 0.15)" : "var(--bg-input)",
+                        color: item.enabled ? "var(--accent-green)" : "var(--text-muted)",
+                      }}
+                    >
                       {item.enabled ? "Active" : "Paused"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => del.mutate({ id: item.id })} className="text-xs text-zinc-600 hover:text-red-400">Delete</button>
+                  <td className="px-5 py-3.5 text-right">
+                    <button
+                      onClick={() => del.mutate({ id: item.id })}
+                      className="text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

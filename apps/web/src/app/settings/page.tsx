@@ -68,16 +68,13 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Settings</h2>
+      <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Settings</h1>
 
       <div className="space-y-4">
         {settingKeys.map((s) => (
-          <div
-            key={s.key}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
-          >
-            <label className="block text-sm font-medium mb-1">{s.label}</label>
-            <p className="text-xs text-zinc-500 mb-3">{s.description}</p>
+          <div key={s.key} className="finance-card">
+            <label className="block text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</label>
+            <p className="text-xs mt-0.5 mb-3" style={{ color: "var(--text-muted)" }}>{s.description}</p>
             <div className="flex gap-2">
               <input
                 type={s.key.includes("key") ? "password" : "text"}
@@ -86,12 +83,17 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setValues((v) => ({ ...v, [s.key]: e.target.value }))
                 }
-                className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono"
+                className="flex-1 rounded-xl px-3 py-2.5 text-sm mono"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
               />
               <button
                 onClick={() => handleSave(s.key)}
                 disabled={setSetting.isPending}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+                style={{
+                  background: saved === s.key ? "var(--accent-green)" : "var(--accent-blue)",
+                  color: saved === s.key ? "#000" : "#fff",
+                }}
               >
                 {saved === s.key ? "Saved!" : "Save"}
               </button>
