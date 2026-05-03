@@ -170,7 +170,7 @@ export default function SubscriptionsPage() {
                   <td className="px-5 py-3.5 text-sm capitalize" style={{ color: "var(--text-secondary)" }}>{sub.type}</td>
                   <td className="px-5 py-3.5 text-sm capitalize" style={{ color: "var(--text-secondary)" }}>{sub.frequency}</td>
                   <td className="px-5 py-3.5 text-sm text-right mono font-medium" style={{ color: "var(--text-primary)" }}>
-                    {formatCurrency(sub.amount)}{sub.frequency === "monthly" ? "/mo" : sub.frequency === "yearly" ? "/yr" : ""}
+                    {formatCurrency(sub.amount, sub.currency ?? "USD")}{sub.frequency === "monthly" ? "/mo" : sub.frequency === "yearly" ? "/yr" : ""}
                   </td>
                   <td className="px-5 py-3.5 text-sm">
                     <button

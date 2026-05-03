@@ -201,7 +201,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <span className="text-sm font-semibold mono" style={{ color: "var(--accent-red)" }}>
-                    −{formatCurrency(expense.amount)}
+                    −{formatCurrency(expense.amount, expense.currency ?? "CNY")}
                   </span>
                 </div>
               ))}

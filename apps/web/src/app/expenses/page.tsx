@@ -194,7 +194,7 @@ export default function ExpensesPage() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-semibold mono" style={{ color: "var(--accent-red)" }}>
-                        −{formatCurrency(expense.amount)}
+                        −{formatCurrency(expense.amount, expense.currency ?? "CNY")}
                       </p>
                       <button
                         onClick={() => deleteExpense.mutate({ id: expense.id })}
