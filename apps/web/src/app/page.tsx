@@ -62,13 +62,13 @@ export default function DashboardPage() {
       >
         <div className="relative z-10">
           <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>
-            This Month&apos;s Spending
+            Last 30 Days
           </p>
           <p className="balance-xl mt-2" style={{ color: "#fff" }}>
             {formatCurrency(data.monthlyBurn)}
           </p>
           <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,0.4)" }}>
-            {data.monthlyTransactions} transaction{data.monthlyTransactions !== 1 ? "s" : ""}
+            {data.monthlyTransactions} transaction{data.monthlyTransactions !== 1 ? "s" : ""} &middot; since {data.windowStart}
           </p>
         </div>
         {/* Decorative gradient orb */}
@@ -82,12 +82,24 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="finance-card">
           <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
-            AI Costs
+            AI Subscriptions
           </p>
           <p className="balance-lg mt-2" style={{ color: "var(--accent-blue)" }}>
-            {formatCurrency(data.aiCostsMtd)}
+            {formatCurrency(data.subscriptionMonthly ?? 0, "USD")}
           </p>
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>this month</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+            {data.activeSubsCount ?? 0} active &middot; per month
+          </p>
+        </div>
+
+        <div className="finance-card">
+          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+            AI Token Costs
+          </p>
+          <p className="balance-lg mt-2" style={{ color: "var(--text-primary)" }}>
+            {formatCurrency(data.aiCostsMtd, "USD")}
+          </p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>last 30 days</p>
         </div>
 
         <div className="finance-card">
@@ -100,16 +112,6 @@ export default function DashboardPage() {
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
             {data.portfolio ? `as of ${data.portfolio.date}` : "not connected"}
           </p>
-        </div>
-
-        <div className="finance-card">
-          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
-            Net Position
-          </p>
-          <p className="balance-lg mt-2" style={{ color: "var(--text-primary)" }}>
-            {formatCurrency((data.portfolio?.netLiquidation ?? 0) - data.monthlyBurn)}
-          </p>
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>portfolio − spend</p>
         </div>
       </div>
 
