@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { CardSkeleton, TableSkeleton } from "@/components/skeleton";
 import { QueryError } from "@/components/error-boundary";
 import { ExportButton } from "@/components/export-button";
+import { BudgetCard } from "./budget-card";
 
 const COLORS: Record<string, string> = {
   "Entry Fees": "#f87171",
@@ -64,6 +65,8 @@ export default function KartingPage() {
         <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Karting</h1>
         <ExportButton data={exportData.data} filename="karting-expenses.csv" />
       </div>
+
+      <BudgetCard />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

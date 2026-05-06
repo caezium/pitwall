@@ -2,6 +2,7 @@ import { z } from "zod";
 import { eq, desc, sql } from "drizzle-orm";
 import { schema } from "@pitwall/db";
 import { router, publicProcedure } from "../trpc";
+import { IBKRConnector } from "../services/ibkr-connector";
 
 export const investmentsRouter = router({
   positions: publicProcedure.query(({ ctx }) => {
@@ -126,6 +127,64 @@ export const investmentsRouter = router({
         .values(input)
         .returning()
         .get();
+    }),
+
+  /** Connect to IB Gateway, sync positions, take a snapshot, then disconnect. */
+  ibkrSync: publicProcedure.mutation(async ({ ctx }) => {
+    const ibkr = new IBKRConnector(ctx.db);
+    const conn = await ibkr.connect();
+    if (!conn.connected) {
+      return {
+        success: false,
+        message: conn.error ?? "Could not connect to IB Gateway",
+        host: conn.host,
+        port: conn.port,
+        positionsSynced: 0,
+        snapshot: null as null | { date: string; netLiquidation: number },
+      };
+    }
+    try {
+      const sync = await ibkr.syncPositions();
+      const snap = await ibkr.takeSnapshot();
+      const latest = ctx.db
+        .select()
+        .from(schema.portfolioSnapshots)
+        .orderBy(desc(schema.portfolioSnapshots.date))
+        .limit(1)
+        .get();
+      return {
+        success: sync.success,
+        message: `${sync.message}; ${snap.message}`,
+        host: conn.host,
+        port: conn.port,
+        positionsSynced: sync.count,
+        snapshot: latest
+          ? { date: latest.date, netLiquidation: latest.netLiquidation }
+          : null,
+      };
+    } finally {
+      await ibkr.disconnect();
+    }
+  }),
+
+  /** Read-only: just check whether the gateway is reachable, no DB writes. */
+  ibkrStatus: publicProcedure.mutation(async ({ ctx }) => {
+    const ibkr = new IBKRConnector(ctx.db);
+    const result = await ibkr.connect();
+    await ibkr.disconnect();
+    return result;
+  }),
+
+  /**
+   * Import IBKR Activity Flex Query XML. Paste the XML from a Flex Query
+   * download URL or saved file. Trades section is required; positions
+   * section is optional.
+   */
+  importFlexXml: publicProcedure
+    .input(z.object({ xml: z.string().min(50) }))
+    .mutation(({ ctx, input }) => {
+      const ibkr = new IBKRConnector(ctx.db);
+      return ibkr.importFlexTrades(input.xml);
     }),
 
   addTrade: publicProcedure

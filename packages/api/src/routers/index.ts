@@ -9,6 +9,8 @@ import { importRouter } from "./import";
 import { exportRouter } from "./export";
 import { recurringRouter } from "./recurring";
 import { subscriptionsRouter } from "./subscriptions";
+import { backupRouter } from "./backup";
+import { kartingRouter } from "./karting";
 
 export const appRouter = router({
   expenses: expensesRouter,
@@ -21,6 +23,8 @@ export const appRouter = router({
   export: exportRouter,
   recurring: recurringRouter,
   subscriptions: subscriptionsRouter,
+  backup: backupRouter,
+  karting: kartingRouter,
 });
 
 export type AppRouter = typeof appRouter;

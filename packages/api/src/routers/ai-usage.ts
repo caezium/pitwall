@@ -3,13 +3,14 @@ import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { schema } from "@pitwall/db";
 import { router, publicProcedure } from "../trpc";
 import { AIBillingService } from "../services/ai-billing";
+import { syncTokscale } from "../services/tokscale";
 
 export const aiUsageRouter = router({
   list: publicProcedure
     .input(
       z
         .object({
-          provider: z.enum(["openai", "anthropic", "google", "other"]).optional(),
+          provider: z.enum(["openai", "anthropic", "openrouter", "google", "other"]).optional(),
           startDate: z.string().optional(),
           endDate: z.string().optional(),
           limit: z.number().min(1).max(200).default(100),
@@ -101,6 +102,8 @@ export const aiUsageRouter = router({
 
       return { byProvider, byModel, dailyTrend, totalMtd, since: monthStart };
     }),
+
+  syncTokscale: publicProcedure.mutation(({ ctx }) => syncTokscale(ctx.db)),
 
   syncNow: publicProcedure.mutation(async ({ ctx }) => {
     const service = new AIBillingService(ctx.db);

@@ -47,30 +47,46 @@ export class IBKRConnector {
       this.ib = new IBApi({ host: this.host, port: this.port, clientId: 1 });
 
       return new Promise((resolve) => {
+        const seen: string[] = [];
         const timeout = setTimeout(() => {
           this.connected = false;
+          const trace = seen.length > 0 ? ` (events seen: ${seen.join(", ")})` : " (no events received from Gateway)";
           resolve({
             connected: false,
             host: this.host,
             port: this.port,
-            error: "Connection timeout (10s). Is IB Gateway running?",
+            error: `Connection timeout (30s).${trace}. Common fixes: (1) restart IB Gateway entirely after first-time API enable, (2) dismiss any popup/bulletin in the Gateway window, (3) confirm API → Settings has 'Read-Only API' off, port ${this.port}, and 127.0.0.1 in Trusted IPs.`,
           });
-        }, 10000);
+        }, 30000);
 
-        this.ib.on(EventName.connected, () => {
-          clearTimeout(timeout);
-          this.connected = true;
-          resolve({ connected: true, host: this.host, port: this.port });
-        });
+        // Treat several events as "ready": some Gateway versions emit
+        // `nextValidId` / `server` before/instead of `connected`.
+        const onReady = (label: string) => {
+          if (this.connected) return;
+          seen.push(label);
+          if (label === "connected" || label === "nextValidId" || label === "server" || label === "managedAccounts") {
+            clearTimeout(timeout);
+            this.connected = true;
+            resolve({ connected: true, host: this.host, port: this.port });
+          }
+        };
+
+        this.ib.on(EventName.connected, () => onReady("connected"));
+        this.ib.on(EventName.server, () => onReady("server"));
+        this.ib.on(EventName.nextValidId, () => onReady("nextValidId"));
+        this.ib.on(EventName.managedAccounts, () => onReady("managedAccounts"));
 
         this.ib.on(EventName.error, (err: Error) => {
+          // 2104 / 2106 / 2158 are "data farm connection is OK" — not errors
+          const msg = err?.message ?? String(err);
+          if (/farm connection is OK|^2104|^2106|^2158/.test(msg)) return;
           clearTimeout(timeout);
           this.connected = false;
           resolve({
             connected: false,
             host: this.host,
             port: this.port,
-            error: err.message,
+            error: msg,
           });
         });
 
@@ -201,14 +217,21 @@ export class IBKRConnector {
   }
 
   /**
-   * Import trades from IBKR Flex Query XML using proper XML parser.
+   * Import an IBKR Activity Flex Query XML. Handles both the Trades section
+   * (inserted into `trades`) and the OpenPositions section (upserted into
+   * `positions`, with all values converted to USD via fxRateToBase). Records
+   * a portfolio snapshot for `reportDate` afterwards.
+   *
+   * Idempotent on trades (dedup by `tradeID`). For positions: any existing
+   * row not present in this import is wiped, since Flex always returns the
+   * full current snapshot of open positions.
    */
   importFlexTrades(xmlContent: string): SyncResult {
     try {
       const parser = new XMLParser({
         ignoreAttributes: false,
         attributeNamePrefix: "",
-        isArray: (name) => name === "Trade",
+        isArray: (name) => name === "Trade" || name === "OpenPosition",
       });
 
       const parsed = parser.parse(xmlContent);
@@ -243,8 +266,14 @@ export class IBKRConnector {
         const symbol = trade.symbol ?? trade.Symbol ?? "";
         const buySell = trade.buySell ?? trade.BuySell ?? trade.side ?? "";
         const action = buySell.toUpperCase() === "SELL" ? "sell" : buySell.toUpperCase() === "BUY" ? "buy" : "dividend";
-        const dateTime = trade.dateTime ?? trade.DateTime ?? trade.tradeDate ?? trade.TradeDate ?? "";
-        const tradeDate = dateTime.includes(";") ? dateTime.split(";")[0] : dateTime.split("T")[0] ?? dateTime;
+        const dateTime = String(trade.dateTime ?? trade.DateTime ?? trade.tradeDate ?? trade.TradeDate ?? "");
+        // Flex defaults to yyyyMMdd[;HHmmss]. Normalize to ISO yyyy-MM-dd.
+        const datePart = dateTime.includes(";")
+          ? dateTime.split(";")[0]
+          : dateTime.split("T")[0];
+        const tradeDate = /^\d{8}$/.test(datePart)
+          ? `${datePart.slice(0, 4)}-${datePart.slice(4, 6)}-${datePart.slice(6, 8)}`
+          : datePart;
 
         this.db
           .insert(schema.trades)
@@ -263,7 +292,138 @@ export class IBKRConnector {
         count++;
       }
 
-      return { success: true, message: `Imported ${count} trades from Flex Query`, count };
+      // ---- Open Positions ----
+      let openPositions: any[] = [];
+      const findPositions = (obj: any): void => {
+        if (!obj || typeof obj !== "object") return;
+        if (obj.OpenPosition) {
+          const list = Array.isArray(obj.OpenPosition) ? obj.OpenPosition : [obj.OpenPosition];
+          openPositions = openPositions.concat(list);
+          return;
+        }
+        for (const val of Object.values(obj)) findPositions(val);
+      };
+      findPositions(parsed);
+
+      // Filter to SUMMARY rows only — LOT rows duplicate the same holding.
+      const summaryPositions = openPositions.filter(
+        (p) => (p.levelOfDetail ?? p.LevelOfDetail ?? "SUMMARY").toUpperCase() === "SUMMARY"
+      );
+
+      let positionCount = 0;
+      let reportDate: string | null = null;
+      const seenSymbols = new Set<string>();
+
+      if (summaryPositions.length > 0) {
+        const now = new Date().toISOString();
+        for (const p of summaryPositions) {
+          const accountId = String(p.accountId ?? p.AccountId ?? "default");
+          const symbol = String(p.symbol ?? p.Symbol ?? "").trim();
+          if (!symbol) continue;
+          const fx = parseFloat(p.fxRateToBase ?? p.FXRateToBase ?? "1") || 1;
+          const quantity = parseFloat(p.position ?? p.Position ?? "0") || 0;
+          const markPrice = parseFloat(p.markPrice ?? p.MarkPrice ?? "0") || 0;
+          const positionValue = parseFloat(p.positionValue ?? p.PositionValue ?? "0") || 0;
+          const costBasisPrice = parseFloat(p.costBasisPrice ?? p.CostBasisPrice ?? "0") || 0;
+          const unrealizedPnl = parseFloat(p.fifoPnlUnrealized ?? p.FifoPnlUnrealized ?? "0") || 0;
+          const description = String(p.description ?? p.Description ?? symbol);
+
+          const rowReportDate = String(p.reportDate ?? p.ReportDate ?? "");
+          if (rowReportDate && !reportDate) {
+            reportDate = /^\d{8}$/.test(rowReportDate)
+              ? `${rowReportDate.slice(0, 4)}-${rowReportDate.slice(4, 6)}-${rowReportDate.slice(6, 8)}`
+              : rowReportDate;
+          }
+
+          const key = `${accountId}|${symbol}`;
+          seenSymbols.add(key);
+
+          const data = {
+            accountId,
+            symbol,
+            description,
+            quantity,
+            avgCost: costBasisPrice * fx,
+            marketValue: positionValue * fx,
+            unrealizedPnl: unrealizedPnl * fx,
+            lastSyncAt: now,
+          };
+
+          const existing = this.db
+            .select()
+            .from(schema.positions)
+            .where(eq(schema.positions.symbol, symbol))
+            .get();
+          if (existing) {
+            this.db
+              .update(schema.positions)
+              .set(data)
+              .where(eq(schema.positions.id, existing.id))
+              .run();
+          } else {
+            this.db.insert(schema.positions).values(data).run();
+          }
+          positionCount++;
+          // Track marketValue for stable mark-price (in USD)
+          void markPrice;
+        }
+
+        // Wipe positions that disappeared (closed since last import).
+        const allExisting = this.db.select().from(schema.positions).all();
+        for (const e of allExisting) {
+          const key = `${e.accountId}|${e.symbol}`;
+          if (!seenSymbols.has(key)) {
+            this.db.delete(schema.positions).where(eq(schema.positions.id, e.id)).run();
+          }
+        }
+      }
+
+      // Take a portfolio snapshot for the reportDate
+      let snapshotMsg = "";
+      if (reportDate && positionCount > 0) {
+        const allPositions = this.db.select().from(schema.positions).all();
+        const netLiq = allPositions.reduce((s, p) => s + p.marketValue, 0);
+        const allocation = allPositions.map((p) => ({
+          symbol: p.symbol,
+          value: p.marketValue,
+          percent: netLiq > 0 ? (p.marketValue / netLiq) * 100 : 0,
+        }));
+        const snapData = {
+          date: reportDate,
+          netLiquidation: netLiq,
+          cash: 0,
+          allocationJson: JSON.stringify(allocation),
+          positionsJson: JSON.stringify(
+            allPositions.map((p) => ({
+              symbol: p.symbol,
+              qty: p.quantity,
+              value: p.marketValue,
+              pnl: p.unrealizedPnl,
+            }))
+          ),
+        };
+        const existingSnap = this.db
+          .select()
+          .from(schema.portfolioSnapshots)
+          .where(eq(schema.portfolioSnapshots.date, reportDate))
+          .get();
+        if (existingSnap) {
+          this.db
+            .update(schema.portfolioSnapshots)
+            .set(snapData)
+            .where(eq(schema.portfolioSnapshots.id, existingSnap.id))
+            .run();
+        } else {
+          this.db.insert(schema.portfolioSnapshots).values(snapData).run();
+        }
+        snapshotMsg = `; snapshot for ${reportDate} (NetLiq $${netLiq.toFixed(2)})`;
+      }
+
+      return {
+        success: true,
+        message: `Imported ${count} trades + ${positionCount} positions${snapshotMsg}`,
+        count: count + positionCount,
+      };
     } catch (err) {
       return { success: false, message: `Flex import error: ${err instanceof Error ? err.message : String(err)}`, count: 0 };
     }

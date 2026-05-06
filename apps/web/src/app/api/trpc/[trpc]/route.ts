@@ -1,6 +1,11 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { appRouter } from "@pitwall/api";
+import { appRouter, startAutoBackup } from "@pitwall/api";
 import { getDb } from "@pitwall/db";
+
+// Eager-init the DB and start the auto-backup loop.
+// `startAutoBackup` is idempotent, so re-evaluation under Next.js HMR is safe.
+getDb();
+startAutoBackup();
 
 const handler = (req: Request) =>
   fetchRequestHandler({

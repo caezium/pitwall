@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { BackupsCard } from "./backups-card";
 
 const settingKeys = [
   {
@@ -69,6 +70,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Settings</h1>
+
+      <BackupsCard />
 
       <div className="space-y-4">
         {settingKeys.map((s) => (

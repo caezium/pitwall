@@ -10,6 +10,7 @@ import { ExportButton } from "@/components/export-button";
 const PROVIDER_COLORS: Record<string, string> = {
   anthropic: "#f59e0b",
   openai: "#34d399",
+  openrouter: "#ec4899",
   google: "#4f7df7",
   other: "#8b5cf6",
 };
@@ -17,6 +18,7 @@ const PROVIDER_COLORS: Record<string, string> = {
 export default function AICostsPage() {
   const summary = trpc.aiUsage.summary.useQuery();
   const syncMutation = trpc.aiUsage.syncNow.useMutation({ onSuccess: () => summary.refetch() });
+  const tokscaleMutation = trpc.aiUsage.syncTokscale.useMutation({ onSuccess: () => summary.refetch() });
   const exportData = trpc.export.aiUsage.useQuery({});
 
   if (summary.isLoading) {
@@ -55,15 +57,36 @@ export default function AICostsPage() {
         <div className="flex gap-2">
           <ExportButton data={exportData.data} filename="ai-costs.csv" />
           <button
+            onClick={() => tokscaleMutation.mutate()}
+            disabled={tokscaleMutation.isPending}
+            className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            style={{ background: "var(--accent-green)", color: "#000" }}
+            title="Pulls token usage from local Claude Code/Codex/Cursor logs via tokscale CLI"
+          >
+            {tokscaleMutation.isPending ? "Syncing tokscale..." : "Sync from tokscale"}
+          </button>
+          <button
             onClick={() => syncMutation.mutate()}
             disabled={syncMutation.isPending}
             className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
             style={{ background: "var(--accent-blue)", color: "#fff" }}
+            title="Pulls billing usage from configured Anthropic / OpenAI / OpenRouter API keys"
           >
-            {syncMutation.isPending ? "Syncing..." : "Sync Now"}
+            {syncMutation.isPending ? "Syncing..." : "Sync APIs"}
           </button>
         </div>
       </div>
+
+      {tokscaleMutation.data && (
+        <div className="finance-card" style={{ borderColor: tokscaleMutation.data.success ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)" }}>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            <span className="font-medium" style={{ color: tokscaleMutation.data.success ? "var(--accent-green)" : "var(--accent-red)" }}>
+              tokscale:
+            </span>{" "}
+            {tokscaleMutation.data.message}
+          </p>
+        </div>
+      )}
 
       {syncMutation.data && (
         <div className="finance-card" style={{ borderColor: "rgba(52, 211, 153, 0.3)" }}>

@@ -12,6 +12,8 @@ dist
 *.db-journal
 *.db-shm
 *.db-wal
+*.db.bak*
+backups/
 
 # Environment
 .env
@@ -35,6 +37,10 @@ docker-compose.override.yml
 .expo
 ios
 android
+
+# Python
+__pycache__/
+*.pyc
 
 # Misc
 *.log

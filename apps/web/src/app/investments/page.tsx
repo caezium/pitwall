@@ -18,6 +18,23 @@ export default function InvestmentsPage() {
   const trades = trpc.investments.trades.useQuery({});
   const snapshots = trpc.investments.snapshot.useQuery();
   const exportData = trpc.export.trades.useQuery({});
+  const utils = trpc.useUtils();
+  const ibkrSync = trpc.investments.ibkrSync.useMutation({
+    onSuccess: () => {
+      utils.investments.performance.invalidate();
+      utils.investments.positions.invalidate();
+      utils.investments.snapshot.invalidate();
+    },
+  });
+  const flexImport = trpc.investments.importFlexXml.useMutation({
+    onSuccess: () => {
+      utils.investments.performance.invalidate();
+      utils.investments.positions.invalidate();
+      utils.investments.trades.invalidate();
+    },
+  });
+  const [flexOpen, setFlexOpen] = useState(false);
+  const [flexXml, setFlexXml] = useState("");
 
   if (performance.isLoading) {
     return (
@@ -57,8 +74,73 @@ export default function InvestmentsPage() {
         <div className="flex gap-2 items-center">
           <AccountSelector selected={accountFilter} onChange={setAccountFilter} />
           <ExportButton data={exportData.data} filename="trades.csv" />
+          <button
+            onClick={() => setFlexOpen((v) => !v)}
+            className="px-3 py-2 rounded-xl text-sm font-medium"
+            style={{ background: "var(--bg-input)", color: "var(--text-primary)" }}
+            title="Paste IBKR Activity Flex Query XML"
+          >
+            Import Flex XML
+          </button>
+          <button
+            onClick={() => ibkrSync.mutate()}
+            disabled={ibkrSync.isPending}
+            className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+            style={{ background: "var(--accent-blue)", color: "#fff" }}
+            title="Connect to IB Gateway, pull positions, take a daily snapshot"
+          >
+            {ibkrSync.isPending ? "Syncing IBKR..." : "Sync from IBKR"}
+          </button>
         </div>
       </div>
+
+      {flexOpen && (
+        <div className="finance-card">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h3 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Import Flex Query XML</h3>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                Paste the XML from <span className="mono">FlexStatementService.SendRequest</span> response, or a saved Activity Flex Query file. Trades + Positions sections are both supported.
+              </p>
+            </div>
+            <button
+              onClick={() => { setFlexOpen(false); setFlexXml(""); }}
+              className="text-xs"
+              style={{ color: "var(--text-muted)" }}
+            >
+              ✕ close
+            </button>
+          </div>
+          <textarea
+            value={flexXml}
+            onChange={(e) => setFlexXml(e.target.value)}
+            placeholder='<FlexQueryResponse queryName="..." type="AF"> ... </FlexQueryResponse>'
+            className="w-full rounded-xl px-3 py-2 text-xs mono"
+            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)", minHeight: "180px" }}
+          />
+          <div className="flex justify-between items-center mt-3">
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {flexXml.length.toLocaleString()} chars
+            </span>
+            <button
+              onClick={() => flexImport.mutate({ xml: flexXml })}
+              disabled={flexImport.isPending || flexXml.length < 50}
+              className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+              style={{ background: "var(--accent-green)", color: "#000" }}
+            >
+              {flexImport.isPending ? "Importing..." : "Import"}
+            </button>
+          </div>
+          {flexImport.data && (
+            <p
+              className="text-sm mt-3"
+              style={{ color: flexImport.data.success ? "var(--accent-green)" : "var(--accent-red)" }}
+            >
+              {flexImport.data.message}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Connection Status */}
       <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-secondary)" }}>
@@ -68,6 +150,29 @@ export default function InvestmentsPage() {
         />
         {perf.lastSync ? `Last sync: ${new Date(perf.lastSync).toLocaleString()}` : "No positions synced yet."}
       </div>
+
+      {ibkrSync.data && (
+        <div
+          className="finance-card"
+          style={{
+            borderColor: ibkrSync.data.success
+              ? "rgba(52, 211, 153, 0.3)"
+              : "rgba(248, 113, 113, 0.3)",
+          }}
+        >
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            <span
+              className="font-medium"
+              style={{
+                color: ibkrSync.data.success ? "var(--accent-green)" : "var(--accent-red)",
+              }}
+            >
+              IBKR ({ibkrSync.data.host}:{ibkrSync.data.port}):
+            </span>{" "}
+            {ibkrSync.data.message}
+          </p>
+        </div>
+      )}
 
       {/* Performance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
