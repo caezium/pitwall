@@ -38,13 +38,13 @@ export function ReceiptUpload({ expenseId, currentUrl, onUploaded }: Props) {
           href={currentUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-blue-400 hover:text-blue-300"
+          className="link link-info text-xs"
         >
           View receipt
         </a>
       )}
       <label className="cursor-pointer">
-        <span className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+        <span className="text-xs text-base-content/60 hover:text-base-content transition-colors">
           {uploading ? "Uploading..." : currentUrl ? "Replace" : "Upload receipt"}
         </span>
         <input

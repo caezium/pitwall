@@ -55,8 +55,7 @@ export default function SubscriptionsPage() {
         <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>AI Subscriptions</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 rounded-xl text-sm font-medium"
-          style={{ background: "var(--accent-blue)", color: "#fff" }}
+          className="btn btn-info"
         >
           {showForm ? "Cancel" : "+ Add"}
         </button>
@@ -97,8 +96,7 @@ export default function SubscriptionsPage() {
                   placeholder={field.placeholder}
                   step={field.step}
                   defaultValue={field.defaultValue}
-                  className="w-full rounded-xl px-3 py-2.5 text-sm"
-                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
                 />
               </div>
             ))}
@@ -111,8 +109,7 @@ export default function SubscriptionsPage() {
                 <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>{sel.label}</label>
                 <select
                   name={sel.name}
-                  className="w-full rounded-xl px-3 py-2.5 text-sm"
-                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
                 >
                   {sel.options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
                 </select>
@@ -124,15 +121,13 @@ export default function SubscriptionsPage() {
             <input
               name="notes"
               placeholder="Optional notes"
-              className="w-full rounded-xl px-3 py-2.5 text-sm"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
             />
           </div>
           <button
             type="submit"
             disabled={create.isPending}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
-            style={{ background: "var(--accent-green)", color: "#000" }}
+            className="btn btn-success"
           >
             {create.isPending ? "Saving..." : "Add Subscription"}
           </button>

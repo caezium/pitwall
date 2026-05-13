@@ -45,7 +45,7 @@ export function MetricCard({
               <Icon size={18} strokeWidth={2.25} />
             </span>
           )}
-          <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-[13px] font-medium text-base-content/70">
             {label}
           </span>
         </div>
@@ -53,18 +53,16 @@ export function MetricCard({
       </div>
 
       <div className="relative mt-3 flex items-end justify-between gap-3">
-        <div className="balance-xl" style={{ color: "var(--text-primary)" }}>
-          {value}
-        </div>
+        <div className="balance-xl text-base-content">{value}</div>
         {action && (
-          <button onClick={action.onClick} className="btn btn-secondary !py-1.5 !px-3 text-[12px]">
+          <button onClick={action.onClick} className="btn btn-ghost btn-sm">
             {action.label}
           </button>
         )}
       </div>
 
       {sub && (
-        <p className="relative mt-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
+        <p className="relative mt-1.5 text-[12px] text-base-content/50">
           {sub}
         </p>
       )}

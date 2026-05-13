@@ -169,8 +169,8 @@ export default function InvestmentsPage() {
               value={flexXml}
               onChange={(e) => setFlexXml(e.target.value)}
               placeholder='<FlexQueryResponse queryName="…" type="AF"> … </FlexQueryResponse>'
-              className="w-full rounded-[12px] px-3 py-2 text-[12px] mono"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)", minHeight: 180 }}
+              className="textarea textarea-bordered w-full text-[12px] mono"
+              style={{ minHeight: 180 }}
             />
             <div className="flex items-center justify-between mt-3">
               <span className="text-[11.5px] mono" style={{ color: "var(--text-muted)" }}>

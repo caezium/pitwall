@@ -16,15 +16,15 @@ export function Pagination({ offset, limit, hasMore, onPrev, onNext }: Props) {
       <button
         onClick={onPrev}
         disabled={offset === 0}
-        className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="btn btn-sm btn-neutral"
       >
         Previous
       </button>
-      <span className="text-sm text-zinc-500">Page {page}</span>
+      <span className="text-sm text-base-content/60">Page {page}</span>
       <button
         onClick={onNext}
         disabled={!hasMore}
-        className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="btn btn-sm btn-neutral"
       >
         Next
       </button>

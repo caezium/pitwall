@@ -9,14 +9,31 @@ export const metadata: Metadata = {
   description: "Personal finance command center",
 };
 
+/* Inline bootstrap so the saved theme is applied before first paint —
+   prevents a light→dark flash for users who chose pitwall-dark. */
+const themeBootstrap = `
+(function () {
+  try {
+    var t = localStorage.getItem("pitwall-theme");
+    if (t !== "light" && t !== "pitwall-dark") t = "light";
+    document.documentElement.setAttribute("data-theme", t);
+  } catch (_) {
+    document.documentElement.setAttribute("data-theme", "light");
+  }
+})();
+`.trim();
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }} className="min-h-screen antialiased">
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
+      <body className="min-h-screen antialiased bg-base-100 text-base-content">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

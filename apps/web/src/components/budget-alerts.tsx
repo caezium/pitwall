@@ -3,30 +3,37 @@
 import { trpc } from "@/lib/trpc";
 import { formatCurrency } from "@pitwall/shared";
 
+type BudgetStatus = {
+  id: string;
+  name: string;
+  overBudget: boolean;
+  percentUsed: number;
+  spent: number;
+  amount: number;
+};
+
 export function BudgetAlerts() {
   const budgetStatus = trpc.budgets.status.useQuery();
 
-  const alerts = budgetStatus.data?.filter(
-    (b: any) => b.overBudget || b.percentUsed > 80
+  const alerts = (budgetStatus.data as BudgetStatus[] | undefined)?.filter(
+    (b) => b.overBudget || b.percentUsed > 80
   ) ?? [];
 
   if (alerts.length === 0) return null;
 
   return (
     <div className="space-y-2 mb-6">
-      {alerts.map((b: any) => (
+      {alerts.map((b) => (
         <div
           key={b.id}
-          className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm ${
-            b.overBudget
-              ? "bg-red-950/40 border border-red-900/50 text-red-400"
-              : "bg-yellow-950/40 border border-yellow-900/50 text-yellow-400"
-          }`}
+          role="alert"
+          className={`alert rounded-2xl ${b.overBudget ? "alert-error" : "alert-warning"}`}
         >
-          <span>
-            {b.overBudget ? "Over budget" : "Near limit"}: <strong>{b.name}</strong>
-          </span>
-          <span className="font-mono">
+          <div className="flex-1">
+            <strong>{b.overBudget ? "Over budget" : "Near limit"}:</strong>{" "}
+            {b.name}
+          </div>
+          <span className="font-mono text-sm">
             {formatCurrency(b.spent)} / {formatCurrency(b.amount)}
             <span className="ml-2 text-xs opacity-70">
               ({Math.round(b.percentUsed)}%)

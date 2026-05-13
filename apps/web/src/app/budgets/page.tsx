@@ -66,8 +66,7 @@ export default function BudgetsPage() {
         <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Budgets</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 rounded-xl text-sm font-medium"
-          style={{ background: "var(--accent-blue)", color: "#fff" }}
+          className={`btn ${showForm ? "btn-secondary" : "btn-primary"}`}
         >
           {showForm ? "Cancel" : "Add Budget"}
         </button>
@@ -83,8 +82,7 @@ export default function BudgetsPage() {
                 name="name"
                 required
                 placeholder="e.g. Monthly Karting"
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               />
             </div>
             <div>
@@ -94,16 +92,14 @@ export default function BudgetsPage() {
                 type="number"
                 step="0.01"
                 required
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Category</label>
               <select
                 name="categoryId"
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               >
                 <option value="">All expenses</option>
                 {categories.data?.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
@@ -113,8 +109,7 @@ export default function BudgetsPage() {
               <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Period</label>
               <select
                 name="period"
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               >
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
@@ -131,8 +126,7 @@ export default function BudgetsPage() {
           <button
             type="submit"
             disabled={createBudget.isPending}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
-            style={{ background: "var(--accent-green)", color: "#000" }}
+            className="btn btn-success"
           >
             {createBudget.isPending ? "Saving..." : "Create Budget"}
           </button>

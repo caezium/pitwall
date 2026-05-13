@@ -1,32 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 
+type Theme = "light" | "pitwall-dark";
+
+/**
+ * Swaps between DaisyUI's `light` theme and the custom `pitwall-dark`
+ * (racing palette). Persists choice in localStorage; the inline bootstrap
+ * in layout.tsx applies the saved theme before first paint to avoid FOUC.
+ */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    const stored = localStorage.getItem("pitwall-theme");
-    if (stored === "light" || stored === "dark") {
-      setTheme(stored);
-      document.documentElement.classList.toggle("dark", stored === "dark");
-    }
+    // Re-read the value the inline bootstrap set on <html>.
+    const current = document.documentElement.getAttribute("data-theme");
+    if (current === "light" || current === "pitwall-dark") setTheme(current);
   }, []);
 
   const toggle = () => {
-    const next = theme === "dark" ? "light" : "dark";
+    const next: Theme = theme === "light" ? "pitwall-dark" : "light";
     setTheme(next);
-    localStorage.setItem("pitwall-theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
+    document.documentElement.setAttribute("data-theme", next);
+    try {
+      localStorage.setItem("pitwall-theme", next);
+    } catch {}
   };
+
+  const isDark = theme === "pitwall-dark";
 
   return (
     <button
       onClick={toggle}
-      className="px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 transition-colors"
-      title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      className="btn btn-ghost btn-sm gap-2"
+      title={`Switch to ${isDark ? "light" : "dark"} mode`}
+      aria-label="Toggle color theme"
     >
-      {theme === "dark" ? "Light" : "Dark"}
+      {isDark ? <Sun size={15} /> : <Moon size={15} />}
+      <span className="text-xs font-medium">{isDark ? "Light" : "Dark"}</span>
     </button>
   );
 }

@@ -19,7 +19,7 @@ export function SectionTitle({
             {eyebrow}
           </p>
         )}
-        <h2 className="text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>
+        <h2 className="text-[15px] font-semibold text-base-content">
           {title}
         </h2>
       </div>

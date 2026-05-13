@@ -64,10 +64,16 @@ export function BackupsCard() {
         <button
           onClick={() => backupNow.mutate()}
           disabled={backupNow.isPending}
-          className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
-          style={{ background: "var(--accent-blue)", color: "#fff" }}
+          className="btn btn-primary"
         >
-          {backupNow.isPending ? "Backing up…" : "Backup now"}
+          {backupNow.isPending ? (
+            <>
+              <span className="loading loading-spinner loading-sm" />
+              Backing up…
+            </>
+          ) : (
+            "Backup now"
+          )}
         </button>
       </div>
 

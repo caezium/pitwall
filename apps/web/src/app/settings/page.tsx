@@ -69,15 +69,19 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Settings</h1>
+      <h1 className="text-xl font-semibold text-base-content">Settings</h1>
 
       <BackupsCard />
 
       <div className="space-y-4">
         {settingKeys.map((s) => (
           <div key={s.key} className="finance-card">
-            <label className="block text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</label>
-            <p className="text-xs mt-0.5 mb-3" style={{ color: "var(--text-muted)" }}>{s.description}</p>
+            <label className="block text-sm font-medium text-base-content">
+              {s.label}
+            </label>
+            <p className="text-xs mt-0.5 mb-3 text-base-content/50">
+              {s.description}
+            </p>
             <div className="flex gap-2">
               <input
                 type={s.key.includes("key") ? "password" : "text"}
@@ -86,17 +90,12 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setValues((v) => ({ ...v, [s.key]: e.target.value }))
                 }
-                className="flex-1 rounded-xl px-3 py-2.5 text-sm mono"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="input input-bordered flex-1 mono"
               />
               <button
                 onClick={() => handleSave(s.key)}
                 disabled={setSetting.isPending}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
-                style={{
-                  background: saved === s.key ? "var(--accent-green)" : "var(--accent-blue)",
-                  color: saved === s.key ? "#000" : "#fff",
-                }}
+                className={`btn ${saved === s.key ? "btn-success" : "btn-primary"}`}
               >
                 {saved === s.key ? "Saved!" : "Save"}
               </button>

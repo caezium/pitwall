@@ -1,5 +1,6 @@
 "use client";
 
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency } from "@pitwall/shared";
 import { BudgetAlerts } from "@/components/budget-alerts";
@@ -22,6 +23,7 @@ export default function DashboardPage() {
   const overview = trpc.dashboard.overview.useQuery();
   const snapshots = trpc.investments.snapshot.useQuery();
   const kartingProj = trpc.karting.projection.useQuery({});
+  const [activityRef] = useAutoAnimate<HTMLDivElement>();
 
   if (overview.isLoading) {
     return <DashboardSkeleton />;
@@ -56,7 +58,6 @@ export default function DashboardPage() {
             sub={`${data.monthlyTransactions} transactions · since ${data.windowStart}`}
             icon={Wallet}
             iconColor="red"
-            pill={{ tone: "neg", text: `−${formatCurrency(data.monthlyBurn, "CNY")}` }}
             glow
           />
           <MetricCard
@@ -185,7 +186,7 @@ export default function DashboardPage() {
                 cta={{ label: "Add expense", href: "/quick-entry" }}
               />
             ) : (
-              <div className="px-5 pb-2">
+              <div ref={activityRef} className="px-5 pb-2">
                 {(data.recentExpenses as Array<{ id: string; description: string; amount: number; currency: string; date: string; category: { name: string; domain: string } | null }>).map((expense) => {
                   const domain = expense.category?.domain ?? "general";
                   const meta = DOMAIN_META[domain];

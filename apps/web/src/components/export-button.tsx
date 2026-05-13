@@ -22,7 +22,7 @@ export function ExportButton({ data, filename, label = "Export CSV" }: Props) {
     <button
       onClick={handleExport}
       disabled={!data}
-      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors disabled:opacity-30"
+      className="btn btn-sm btn-neutral"
     >
       {label}
     </button>

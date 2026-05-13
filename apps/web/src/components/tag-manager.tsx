@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 
+type Tag = { id: string; name: string };
+
 type Props = {
   selectedTagIds: string[];
   onChange: (tagIds: string[]) => void;
@@ -14,7 +16,7 @@ export function TagManager({ selectedTagIds, onChange }: Props) {
   const utils = trpc.useUtils();
   const tags = trpc.expenses.tags.useQuery();
   const createTag = trpc.expenses.createTag.useMutation({
-    onSuccess: (tag) => {
+    onSuccess: (tag: Tag) => {
       utils.expenses.tags.invalidate();
       onChange([...selectedTagIds, tag.id]);
       setNewTag("");
@@ -36,26 +38,25 @@ export function TagManager({ selectedTagIds, onChange }: Props) {
     }
   };
 
-  // Autocomplete filter
   const filtered = newTag
-    ? tags.data?.filter((t: any) =>
+    ? tags.data?.filter((t: Tag) =>
         t.name.toLowerCase().includes(newTag.toLowerCase())
       )
     : tags.data;
 
   return (
     <div>
-      <label className="block text-sm text-zinc-400 mb-1">Tags</label>
+      <label className="block text-sm text-base-content/60 mb-1">Tags</label>
       <div className="flex flex-wrap gap-1.5 mb-2">
-        {tags.data?.map((tag: any) => (
+        {tags.data?.map((tag: Tag) => (
           <button
             key={tag.id}
             type="button"
             onClick={() => toggle(tag.id)}
-            className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
+            className={`badge gap-1 cursor-pointer ${
               selectedTagIds.includes(tag.id)
-                ? "bg-blue-600 text-white"
-                : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                ? "badge-primary"
+                : "badge-ghost"
             }`}
           >
             {tag.name}
@@ -64,39 +65,38 @@ export function TagManager({ selectedTagIds, onChange }: Props) {
         <button
           type="button"
           onClick={() => setShowInput(!showInput)}
-          className="px-2.5 py-1 rounded-full text-xs bg-zinc-800 text-zinc-500 hover:bg-zinc-700 transition-colors"
+          className="badge badge-outline gap-1 cursor-pointer"
         >
           + New tag
         </button>
       </div>
 
       {showInput && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 relative">
           <input
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
             placeholder="Tag name"
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm"
+            className="input input-sm input-bordered flex-1"
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleCreate())}
           />
           <button
             type="button"
             onClick={handleCreate}
             disabled={!newTag.trim() || createTag.isPending}
-            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-xs disabled:opacity-50"
+            className="btn btn-sm btn-success"
           >
             Add
           </button>
 
-          {/* Autocomplete suggestions */}
           {newTag && filtered && filtered.length > 0 && (
-            <div className="absolute mt-10 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-10 max-h-32 overflow-y-auto">
-              {filtered.map((t: any) => (
+            <div className="absolute top-full left-0 mt-1 bg-base-200 border border-base-300 rounded-lg shadow-lg z-10 max-h-32 overflow-y-auto w-full">
+              {filtered.map((t: Tag) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => { toggle(t.id); setNewTag(""); setShowInput(false); }}
-                  className="block w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-700 text-zinc-300"
+                  className="block w-full text-left px-3 py-1.5 text-xs hover:bg-base-300 text-base-content/80"
                 >
                   {t.name}
                 </button>

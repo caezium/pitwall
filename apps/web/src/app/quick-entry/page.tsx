@@ -178,8 +178,7 @@ export default function QuickEntryPage() {
           <button
             onClick={saveAll}
             disabled={saving || unsavedCount === 0}
-            className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
-            style={{ background: "var(--accent-green)", color: "#000" }}
+            className="btn btn-success"
           >
             {saving ? "Saving..." : `Save All (${unsavedCount})`}
           </button>
@@ -199,8 +198,7 @@ export default function QuickEntryPage() {
                 prev.map((r) => (r.saved ? r : { ...r, date: e.target.value }))
               );
             }}
-            className="rounded-lg px-2 py-1 text-xs"
-            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            className="rounded-lg px-2 py-1 text-xs input input-bordered"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -213,8 +211,7 @@ export default function QuickEntryPage() {
                 prev.map((r) => (r.saved || r.categoryId ? r : { ...r, categoryId: e.target.value }))
               );
             }}
-            className="rounded-lg px-2 py-1 text-xs"
-            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            className="rounded-lg px-2 py-1 text-xs input input-bordered"
           >
             <option value="">--</option>
             {categories.data?.map((c: any) => (
@@ -228,8 +225,7 @@ export default function QuickEntryPage() {
             value={lastEvent}
             onChange={(e) => setLastEvent(e.target.value)}
             placeholder="Event name"
-            className="rounded-lg px-2 py-1 text-xs w-36"
-            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            className="rounded-lg px-2 py-1 text-xs w-36 input input-bordered"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -238,8 +234,7 @@ export default function QuickEntryPage() {
             value={lastTrack}
             onChange={(e) => setLastTrack(e.target.value)}
             placeholder="Track"
-            className="rounded-lg px-2 py-1 text-xs w-28"
-            style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            className="rounded-lg px-2 py-1 text-xs w-28 input input-bordered"
           />
         </div>
       </div>

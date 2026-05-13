@@ -35,7 +35,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <div className="flex min-h-screen" style={{ background: "var(--bg-primary)" }}>
+        <div className="flex min-h-screen bg-base-100">
           <Sidebar />
           <div className="flex-1 flex flex-col min-w-0">
             <Topbar />

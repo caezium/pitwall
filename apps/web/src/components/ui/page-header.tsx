@@ -14,11 +14,11 @@ export function PageHeader({
   return (
     <div className="flex items-start justify-between gap-4 mb-6">
       <div>
-        <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
+        <h1 className="text-[26px] font-semibold tracking-tight text-base-content">
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-1 text-[13px]" style={{ color: "var(--text-muted)" }}>
+          <p className="mt-1 text-[13px] text-base-content/50">
             {subtitle}
           </p>
         )}

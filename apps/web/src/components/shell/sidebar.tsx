@@ -5,7 +5,6 @@ import {
   LayoutDashboard, ArrowLeftRight, Zap, Flag, Target, Repeat,
   Cpu, Infinity as InfinityIcon, LineChart,
   Download, Settings, LogOut, HelpCircle,
-  ChevronDown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
@@ -24,9 +23,7 @@ type NavGroup = {
 const groups: NavGroup[] = [
   {
     label: "Overview",
-    items: [
-      { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    ],
+    items: [{ href: "/", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
     label: "Money",
@@ -39,9 +36,7 @@ const groups: NavGroup[] = [
   },
   {
     label: "Racing",
-    items: [
-      { href: "/karting",     label: "Karting",      icon: Flag },
-    ],
+    items: [{ href: "/karting", label: "Karting", icon: Flag }],
   },
   {
     label: "AI",
@@ -52,9 +47,7 @@ const groups: NavGroup[] = [
   },
   {
     label: "Invest",
-    items: [
-      { href: "/investments", label: "Portfolio", icon: LineChart },
-    ],
+    items: [{ href: "/investments", label: "Portfolio", icon: LineChart }],
   },
   {
     label: "Tools",
@@ -67,19 +60,14 @@ const groups: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  // Auto-collapse persistent across renders only — keep simple.
   const [collapsed] = useState(false);
 
   return (
     <aside
-      className="flex flex-col border-r select-none"
-      style={{
-        width: collapsed ? 72 : 240,
-        borderColor: "var(--border)",
-        background: "var(--bg-primary)",
-      }}
+      className="flex flex-col border-r border-base-300 bg-base-100 select-none"
+      style={{ width: collapsed ? 72 : 240 }}
     >
-      {/* Brand */}
+      {/* Brand — keep racing-flavored gradient logo */}
       <div className="px-4 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
           <div
@@ -93,10 +81,10 @@ export function Sidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-[15px] font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
+              <span className="text-[15px] font-semibold tracking-tight text-base-content">
                 Pitwall
               </span>
-              <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+              <span className="text-[10px] text-base-content/50">
                 Personal finance HQ
               </span>
             </div>
@@ -110,10 +98,10 @@ export function Sidebar() {
           <div key={g.label} className="mb-3">
             {!collapsed && (
               <div className="flex items-center gap-1 px-3 mb-1.5 mt-2">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.10em]" style={{ color: "var(--text-muted)" }}>
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.10em] text-base-content/50">
                   {g.label}
                 </p>
-                <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+                <div className="flex-1 h-px bg-base-300" />
               </div>
             )}
             <ul className="space-y-0.5">
@@ -124,14 +112,14 @@ export function Sidebar() {
                   <li key={item.href}>
                     <a
                       href={item.href}
-                      className="relative flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-medium"
-                      style={{
-                        color: active ? "var(--text-primary)" : "var(--text-secondary)",
-                        background: active ? "var(--bg-card)" : "transparent",
-                        border: active ? "1px solid var(--border-light)" : "1px solid transparent",
-                      }}
+                      className={[
+                        "relative flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] font-medium border",
+                        active
+                          ? "text-base-content bg-base-200 border-base-300"
+                          : "text-base-content/70 border-transparent hover:bg-base-200/60 hover:text-base-content",
+                      ].join(" ")}
                     >
-                      {/* Active indicator stripe (race flag styling) */}
+                      {/* Active indicator — race-flag gradient stripe, theme-agnostic */}
                       {active && (
                         <span
                           aria-hidden
@@ -144,7 +132,7 @@ export function Sidebar() {
                       <Icon size={16} strokeWidth={2} className="flex-shrink-0" />
                       {!collapsed && <span className="flex-1">{item.label}</span>}
                       {!collapsed && item.badge && (
-                        <span className="pill pill-info !py-0.5">{item.badge}</span>
+                        <span className="badge badge-info badge-xs">{item.badge}</span>
                       )}
                     </a>
                   </li>
@@ -155,14 +143,13 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer: help + logout */}
-      <div className="px-2.5 pb-4 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+      {/* Footer */}
+      <div className="px-2.5 pb-4 pt-2 border-t border-base-300">
         <a
           href="https://github.com/caezium/pitwall"
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px]"
-          style={{ color: "var(--text-secondary)" }}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] text-base-content/70 hover:text-base-content hover:bg-base-200/60"
         >
           <HelpCircle size={16} strokeWidth={2} />
           {!collapsed && <span>Help & docs</span>}
@@ -172,8 +159,7 @@ export function Sidebar() {
             await fetch("/api/auth/logout", { method: "POST" });
             window.location.href = "/login";
           }}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px]"
-          style={{ color: "var(--text-secondary)" }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] text-base-content/70 hover:text-base-content hover:bg-base-200/60"
         >
           <LogOut size={16} strokeWidth={2} />
           {!collapsed && <span>Sign out</span>}

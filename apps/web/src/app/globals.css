@@ -1,7 +1,102 @@
 @import "tailwindcss";
 
-:root {
-  /* Surfaces */
+/* ====================================================================== */
+/* DaisyUI 5 plugin (Tailwind v4 syntax).
+   Light is the default theme — friendly DaisyUI defaults, similar to the
+   stocks app vibe. Dark is a custom "pitwall-dark" theme that preserves
+   the racing palette (race-red, F1 yellow, track-green, cobalt, violet). */
+/* ====================================================================== */
+
+@plugin "daisyui" {
+  themes: light --default, pitwall-dark;
+  logs: false;
+}
+
+@plugin "daisyui/theme" {
+  name: "pitwall-dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: #11131c;   /* card surface */
+  --color-base-200: #0e1018;   /* elevation 1  */
+  --color-base-300: #07080d;   /* page bg      */
+  --color-base-content: #f1f1f6;
+
+  --color-primary: #ff3838;          /* race-red */
+  --color-primary-content: #ffffff;
+  --color-secondary: #5b8dff;        /* cobalt   */
+  --color-secondary-content: #ffffff;
+  --color-accent: #b48cff;           /* violet   */
+  --color-accent-content: #1a0033;
+  --color-neutral: #1e2030;
+  --color-neutral-content: #f1f1f6;
+
+  --color-info: #4f7df7;
+  --color-info-content: #ffffff;
+  --color-success: #2ee59d;
+  --color-success-content: #001f12;
+  --color-warning: #ffd23f;
+  --color-warning-content: #281d00;
+  --color-error: #ff3838;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 11px;
+  --radius-field: 11px;
+  --radius-box: 18px;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* ====================================================================== */
+/* Legacy design tokens. Scoped per data-theme so existing components keep
+   working while pages migrate to DaisyUI primitives. New code should
+   prefer DaisyUI semantic classes (bg-base-100, text-base-content, etc.). */
+/* ====================================================================== */
+
+/* LIGHT theme legacy tokens (matches DaisyUI stock "light") */
+[data-theme="light"], :root:not([data-theme]) {
+  --bg-primary:       #f9fafb;
+  --bg-elev-1:        #ffffff;
+  --bg-card:          #ffffff;
+  --bg-card-hover:    #f4f4f5;
+  --bg-input:         #f1f5f9;
+  --bg-rail:          #ffffff;
+
+  --border:           #e4e4e7;
+  --border-light:     #d4d4d8;
+  --border-glow:      rgba(239, 68, 68, 0.18);
+
+  --text-primary:     #18181b;
+  --text-secondary:   #52525b;
+  --text-muted:       #a1a1aa;
+
+  --accent-red:       #ef4444;
+  --accent-red-soft:  rgba(239, 68, 68, 0.14);
+  --accent-yellow:    #eab308;
+  --accent-green:     #10b981;
+  --accent-blue:      #4f7df7;
+  --accent-cobalt:    #3b82f6;
+  --accent-purple:    #a855f7;
+  --accent-pink:      #ec4899;
+
+  --pill-pos-bg:  rgba(16,185,129,0.14);   --pill-pos-fg:  #047857;
+  --pill-neg-bg:  rgba(239, 68, 68,0.14);  --pill-neg-fg:  #b91c1c;
+  --pill-warn-bg: rgba(234,179,  8,0.14);  --pill-warn-fg: #92400e;
+  --pill-info-bg: rgba( 59,130,246,0.14);  --pill-info-fg: #1d4ed8;
+  --pill-mute-bg: rgba(161,161,170,0.10);  --pill-mute-fg: #52525b;
+
+  --radius-card:  18px;
+  --radius-inner: 12px;
+  --shadow-card:  0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -16px rgba(0,0,0,0.12);
+  --shadow-rail:  0 8px 24px -12px rgba(0,0,0,0.08);
+}
+
+/* DARK theme legacy tokens — preserves the original racing palette */
+[data-theme="pitwall-dark"] {
   --bg-primary:       #07080d;
   --bg-elev-1:        #0e1018;
   --bg-card:          #11131c;
@@ -9,18 +104,14 @@
   --bg-input:         #15172220;
   --bg-rail:          #0b0d14;
 
-  /* Lines */
   --border:           #1e2030;
   --border-light:     #2a2c40;
-  --border-glow:      rgba(255, 56, 56, 0.18); /* race-red, used on hover */
+  --border-glow:      rgba(255, 56, 56, 0.18);
 
-  /* Text */
   --text-primary:     #f1f1f6;
   --text-secondary:   #8d8fa7;
   --text-muted:       #565870;
 
-  /* Accents — racing flavor: red (Ferrari/F1), yellow (caution), green (track-clear),
-     cobalt (chart primary), violet (chart secondary). Avoid generic SaaS blue. */
   --accent-red:       #ff3838;
   --accent-red-soft:  #ff385825;
   --accent-yellow:    #ffd23f;
@@ -30,35 +121,36 @@
   --accent-purple:    #b48cff;
   --accent-pink:      #ff7ab6;
 
-  /* Status pill colors (background = 18% accent) */
-  --pill-pos-bg:      rgba(46, 229, 157, 0.14);
-  --pill-pos-fg:      #2ee59d;
-  --pill-neg-bg:      rgba(255, 56, 56, 0.14);
-  --pill-neg-fg:      #ff5252;
-  --pill-warn-bg:     rgba(255, 210, 63, 0.14);
-  --pill-warn-fg:     #ffd23f;
-  --pill-info-bg:     rgba(91, 141, 255, 0.14);
-  --pill-info-fg:     #88a8ff;
-  --pill-mute-bg:     rgba(140, 144, 175, 0.10);
-  --pill-mute-fg:     #aab0c8;
+  --pill-pos-bg:  rgba( 46,229,157,0.14);  --pill-pos-fg:  #2ee59d;
+  --pill-neg-bg:  rgba(255, 56, 56,0.14);  --pill-neg-fg:  #ff5252;
+  --pill-warn-bg: rgba(255,210, 63,0.14);  --pill-warn-fg: #ffd23f;
+  --pill-info-bg: rgba( 91,141,255,0.14);  --pill-info-fg: #88a8ff;
+  --pill-mute-bg: rgba(140,144,175,0.10);  --pill-mute-fg: #aab0c8;
 
-  /* Sizes */
-  --radius-card:      18px;
-  --radius-inner:     12px;
-  --shadow-card:      0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px -16px rgba(0,0,0,0.7);
-  --shadow-rail:      0 12px 32px -12px rgba(0,0,0,0.4);
+  --radius-card:  18px;
+  --radius-inner: 12px;
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px -16px rgba(0,0,0,0.7);
+  --shadow-rail:  0 12px 32px -12px rgba(0,0,0,0.4);
 }
 
-/* ===== Typography helpers ============================================== */
-.balance-2xl  { font-size: 2.75rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
-.balance-xl   { font-size: 2.10rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
-.balance-lg   { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1; font-variant-numeric: tabular-nums; }
-.balance-md   { font-size: 1.18rem; font-weight: 600; letter-spacing: -0.01em;  font-variant-numeric: tabular-nums; }
-.balance-sm   { font-size: 0.95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.mono         { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Liberation Mono", Consolas, monospace; }
-.eyebrow      { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); }
+/* ====================================================================== */
+/* Typography helpers — semantic, not visual. Money formatting, eyebrow
+   labels, balance hierarchy. These are not button styles; keep them. */
+/* ====================================================================== */
 
-/* ===== Cards =========================================================== */
+.balance-2xl { font-size: 2.75rem; font-weight: 700; letter-spacing: -0.02em;  line-height: 1; font-variant-numeric: tabular-nums; }
+.balance-xl  { font-size: 2.10rem; font-weight: 700; letter-spacing: -0.02em;  line-height: 1; font-variant-numeric: tabular-nums; }
+.balance-lg  { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1; font-variant-numeric: tabular-nums; }
+.balance-md  { font-size: 1.18rem; font-weight: 600; letter-spacing: -0.01em;  font-variant-numeric: tabular-nums; }
+.balance-sm  { font-size: 0.95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mono        { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Liberation Mono", Consolas, monospace; }
+.eyebrow     { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); }
+
+/* ====================================================================== */
+/* Cards. DaisyUI provides `.card` but the visual is different; .finance-card
+   and .rail-card encode specific dashboard layouts. Kept. */
+/* ====================================================================== */
+
 .finance-card {
   background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-card) 100%);
   border: 1px solid var(--border);
@@ -67,9 +159,7 @@
   box-shadow: var(--shadow-card);
   transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
-.finance-card:hover {
-  border-color: var(--border-light);
-}
+.finance-card:hover { border-color: var(--border-light); }
 .finance-card.interactive:hover {
   border-color: var(--border-glow);
   transform: translateY(-1px);
@@ -83,7 +173,6 @@
   box-shadow: var(--shadow-rail);
 }
 
-/* Subtle checkered texture for "pit wall" feel on hero card */
 .pitwall-grid {
   background-color: var(--bg-card);
   background-image:
@@ -93,17 +182,15 @@
   background-position: -1px -1px;
 }
 
-/* ===== Pills =========================================================== */
+/* ====================================================================== */
+/* Pills. DaisyUI has `.badge` but we use semantic pos/neg/warn/info names. */
+/* ====================================================================== */
+
 .pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.70rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 999px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.70rem; font-weight: 600;
+  padding: 3px 8px; border-radius: 999px;
+  line-height: 1; font-variant-numeric: tabular-nums;
 }
 .pill-pos  { background: var(--pill-pos-bg);  color: var(--pill-pos-fg); }
 .pill-neg  { background: var(--pill-neg-bg);  color: var(--pill-neg-fg); }
@@ -111,7 +198,10 @@
 .pill-info { background: var(--pill-info-bg); color: var(--pill-info-fg); }
 .pill-mute { background: var(--pill-mute-bg); color: var(--pill-mute-fg); }
 
-/* ===== Icon chip — colored square frame around a Lucide icon =========== */
+/* ====================================================================== */
+/* Icon chip — colored square frame around a Lucide icon. No DaisyUI equiv. */
+/* ====================================================================== */
+
 .icon-chip {
   width: 36px; height: 36px;
   border-radius: 10px;
@@ -120,37 +210,24 @@
   border: 1px solid var(--border);
   flex-shrink: 0;
 }
-.icon-chip-red    { background: rgba(255, 56, 56, 0.10);  color: var(--accent-red);    border-color: rgba(255,56,56,0.18); }
-.icon-chip-green  { background: rgba(46, 229, 157, 0.10); color: var(--accent-green);  border-color: rgba(46,229,157,0.18); }
-.icon-chip-yellow { background: rgba(255, 210, 63, 0.10); color: var(--accent-yellow); border-color: rgba(255,210,63,0.18); }
-.icon-chip-blue   { background: rgba(91, 141, 255, 0.10); color: var(--accent-cobalt); border-color: rgba(91,141,255,0.18); }
-.icon-chip-purple { background: rgba(180, 140, 255, 0.10);color: var(--accent-purple); border-color: rgba(180,140,255,0.18); }
-.icon-chip-pink   { background: rgba(255, 122, 182, 0.10);color: var(--accent-pink);   border-color: rgba(255,122,182,0.18); }
+.icon-chip-red    { background: rgba(255, 56, 56, 0.10);  color: var(--accent-red);    border-color: rgba(255, 56, 56,0.18); }
+.icon-chip-green  { background: rgba( 46,229,157, 0.10);  color: var(--accent-green);  border-color: rgba( 46,229,157,0.18); }
+.icon-chip-yellow { background: rgba(255,210, 63, 0.10);  color: var(--accent-yellow); border-color: rgba(255,210, 63,0.18); }
+.icon-chip-blue   { background: rgba( 91,141,255, 0.10);  color: var(--accent-cobalt); border-color: rgba( 91,141,255,0.18); }
+.icon-chip-purple { background: rgba(180,140,255, 0.10);  color: var(--accent-purple); border-color: rgba(180,140,255,0.18); }
+.icon-chip-pink   { background: rgba(255,122,182, 0.10);  color: var(--accent-pink);   border-color: rgba(255,122,182,0.18); }
 
-/* ===== Buttons ========================================================= */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 14px;
-  border-radius: 11px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 150ms ease;
-  white-space: nowrap;
-}
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* ====================================================================== */
+/* Buttons — REMOVED. DaisyUI provides .btn / .btn-primary / .btn-secondary
+   / .btn-ghost / .btn-success / etc., themed via the active DaisyUI theme.
+   Existing `<button class="btn btn-primary">` markup auto-picks up
+   theme-correct styling without source changes. */
+/* ====================================================================== */
 
-.btn-primary  { background: var(--accent-red);    color: white; }
-.btn-primary:hover:not(:disabled)  { background: #ff5252; box-shadow: 0 0 0 4px rgba(255, 56, 56, 0.18); }
-.btn-secondary{ background: var(--bg-input);      color: var(--text-primary); border-color: var(--border); }
-.btn-secondary:hover:not(:disabled){ border-color: var(--border-light); background: var(--bg-card-hover); }
-.btn-ghost    { background: transparent;          color: var(--text-secondary); }
-.btn-ghost:hover:not(:disabled)    { color: var(--text-primary); background: var(--bg-input); }
-.btn-success  { background: var(--accent-green);  color: #001f12; }
-.btn-success:hover:not(:disabled)  { background: #4cf3b3; }
+/* ====================================================================== */
+/* Tables — list-row layout for activity feeds. */
+/* ====================================================================== */
 
-/* ===== Tables ========================================================== */
 .tx-row {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 0;
@@ -174,15 +251,13 @@
   border-bottom: 1px solid var(--border);
 }
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover td { background: rgba(255,255,255,0.015); }
+.data-table tbody tr:hover td { background: color-mix(in oklab, var(--text-primary) 2%, transparent); }
 
-/* ===== Misc ============================================================ */
+/* ====================================================================== */
+/* Misc */
+/* ====================================================================== */
+
 .category-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-
-/* Smooth transitions for color-only changes (kept narrow so layouts don't flicker) */
-button, a, [role="button"] {
-  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
-}
 
 ::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -190,13 +265,7 @@ button, a, [role="button"] {
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 input, select, textarea { font-variant-numeric: tabular-nums; }
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--accent-red) !important;
-  box-shadow: 0 0 0 3px rgba(255, 56, 56, 0.14);
-}
 
-/* Page container — keep main content readable without max-width feeling cramped on big screens */
 .page {
   padding: 24px clamp(16px, 4vw, 40px) 48px;
 }

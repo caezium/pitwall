@@ -140,16 +140,14 @@ export default function ImportPage() {
                 onChange={(e) => setCsvContent(e.target.value)}
                 placeholder="date,description,amount&#10;2024-03-15,Entry fee,350&#10;2024-03-15,Tires,450"
                 rows={6}
-                className="w-full rounded-xl px-3 py-2.5 text-sm mono"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm mono input input-bordered"
               />
             </div>
 
             <button
               onClick={handleParse}
               disabled={!csvContent || parseMutation.isPending}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
-              style={{ background: "var(--accent-blue)", color: "#fff" }}
+              className="btn btn-info"
             >
               {parseMutation.isPending ? "Parsing..." : "Preview & Map Columns"}
             </button>
@@ -178,8 +176,7 @@ export default function ImportPage() {
                   <select
                     value={mapping[field] ?? ""}
                     onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
-                    className="flex-1 rounded-xl px-3 py-2 text-sm"
-                    style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                    className="flex-1 rounded-xl px-3 py-2 text-sm input input-bordered"
                   >
                     <option value="">-- skip --</option>
                     {preview.headers.map((h) => (
@@ -229,8 +226,7 @@ export default function ImportPage() {
             <button
               onClick={handleExecute}
               disabled={executeMutation.isPending}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
-              style={{ background: "var(--accent-green)", color: "#000" }}
+              className="btn btn-success"
             >
               {executeMutation.isPending ? "Importing..." : `Import ${preview.rowCount} rows`}
             </button>
@@ -270,8 +266,7 @@ export default function ImportPage() {
 
           <button
             onClick={handleReset}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium"
-            style={{ background: "var(--accent-blue)", color: "#fff" }}
+            className="btn btn-info"
           >
             Import More
           </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, formatDate } from "@pitwall/shared";
 import { TagManager } from "@/components/tag-manager";
@@ -36,6 +37,7 @@ export default function ExpensesPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const utils = trpc.useUtils();
+  const [listRef] = useAutoAnimate<HTMLDivElement>();
 
   const expensesQ = trpc.expenses.list.useQuery({ limit: LIMIT, offset, search: search || undefined });
   const categories = trpc.expenses.categories.useQuery();
@@ -138,8 +140,7 @@ export default function ExpensesPage() {
                   placeholder={field.placeholder}
                   step={field.step}
                   defaultValue={field.defaultValue}
-                  className="w-full rounded-[12px] px-3 py-2.5 text-sm"
-                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  className="w-full rounded-[12px] px-3 py-2.5 text-sm input input-bordered"
                 />
               </div>
             ))}
@@ -147,8 +148,7 @@ export default function ExpensesPage() {
               <label className="eyebrow mb-1.5 block">Category</label>
               <select
                 name="categoryId"
-                className="w-full rounded-[12px] px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-[12px] px-3 py-2.5 text-sm input input-bordered"
               >
                 <option value="">Uncategorized</option>
                 {(categories.data as Array<{ id: string; name: string; domain: string }> | undefined)?.map((c) => (
@@ -162,8 +162,7 @@ export default function ExpensesPage() {
             <textarea
               name="notes"
               rows={2}
-              className="w-full rounded-[12px] px-3 py-2.5 text-sm"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              className="w-full rounded-[12px] px-3 py-2.5 text-sm input input-bordered"
             />
           </div>
           <TagManager selectedTagIds={selectedTags} onChange={setSelectedTags} />
@@ -193,7 +192,7 @@ export default function ExpensesPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div ref={listRef} className="space-y-3">
           {[...grouped.entries()].map(([date, list]) => {
             const dayTotal = list.reduce((s, e) => s + e.amount, 0);
             return (

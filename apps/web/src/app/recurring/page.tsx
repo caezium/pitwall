@@ -55,15 +55,13 @@ export default function RecurringPage() {
           <button
             onClick={() => processDue.mutate()}
             disabled={processDue.isPending}
-            className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
-            style={{ background: "var(--accent-green)", color: "#000" }}
+            className="btn btn-success"
           >
             {processDue.isPending ? "Processing..." : "Process Due"}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 rounded-xl text-sm font-medium"
-            style={{ background: "var(--accent-blue)", color: "#fff" }}
+            className="btn btn-info"
           >
             {showForm ? "Cancel" : "+ Add"}
           </button>
@@ -88,8 +86,7 @@ export default function RecurringPage() {
               <input
                 name="description"
                 required
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               />
             </div>
             <div>
@@ -99,16 +96,14 @@ export default function RecurringPage() {
                 type="number"
                 step="0.01"
                 required
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Frequency</label>
               <select
                 name="frequency"
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               >
                 <option value="weekly">Weekly</option>
                 <option value="biweekly">Biweekly</option>
@@ -123,16 +118,14 @@ export default function RecurringPage() {
                 name="nextDate"
                 type="date"
                 required
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Category</label>
               <select
                 name="categoryId"
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="w-full rounded-xl px-3 py-2.5 text-sm input input-bordered"
               >
                 <option value="">None</option>
                 {categories.data?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -142,8 +135,7 @@ export default function RecurringPage() {
           <button
             type="submit"
             disabled={create.isPending}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
-            style={{ background: "var(--accent-green)", color: "#000" }}
+            className="btn btn-success"
           >
             {create.isPending ? "Saving..." : "Create"}
           </button>
