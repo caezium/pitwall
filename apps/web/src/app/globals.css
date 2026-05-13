@@ -1,114 +1,202 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-card: #12121a;
-  --bg-card-hover: #1a1a25;
-  --bg-input: #1a1a25;
-  --border: #1e1e2e;
-  --border-light: #2a2a3a;
-  --text-primary: #f0f0f5;
-  --text-secondary: #8888a0;
-  --text-muted: #55556a;
-  --accent-blue: #4f7df7;
-  --accent-green: #34d399;
-  --accent-red: #f87171;
-  --accent-yellow: #fbbf24;
-  --accent-purple: #a78bfa;
+  /* Surfaces */
+  --bg-primary:       #07080d;
+  --bg-elev-1:        #0e1018;
+  --bg-card:          #11131c;
+  --bg-card-hover:    #161824;
+  --bg-input:         #15172220;
+  --bg-rail:          #0b0d14;
+
+  /* Lines */
+  --border:           #1e2030;
+  --border-light:     #2a2c40;
+  --border-glow:      rgba(255, 56, 56, 0.18); /* race-red, used on hover */
+
+  /* Text */
+  --text-primary:     #f1f1f6;
+  --text-secondary:   #8d8fa7;
+  --text-muted:       #565870;
+
+  /* Accents — racing flavor: red (Ferrari/F1), yellow (caution), green (track-clear),
+     cobalt (chart primary), violet (chart secondary). Avoid generic SaaS blue. */
+  --accent-red:       #ff3838;
+  --accent-red-soft:  #ff385825;
+  --accent-yellow:    #ffd23f;
+  --accent-green:     #2ee59d;
+  --accent-blue:      #4f7df7;
+  --accent-cobalt:    #5b8dff;
+  --accent-purple:    #b48cff;
+  --accent-pink:      #ff7ab6;
+
+  /* Status pill colors (background = 18% accent) */
+  --pill-pos-bg:      rgba(46, 229, 157, 0.14);
+  --pill-pos-fg:      #2ee59d;
+  --pill-neg-bg:      rgba(255, 56, 56, 0.14);
+  --pill-neg-fg:      #ff5252;
+  --pill-warn-bg:     rgba(255, 210, 63, 0.14);
+  --pill-warn-fg:     #ffd23f;
+  --pill-info-bg:     rgba(91, 141, 255, 0.14);
+  --pill-info-fg:     #88a8ff;
+  --pill-mute-bg:     rgba(140, 144, 175, 0.10);
+  --pill-mute-fg:     #aab0c8;
+
+  /* Sizes */
+  --radius-card:      18px;
+  --radius-inner:     12px;
+  --shadow-card:      0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px -16px rgba(0,0,0,0.7);
+  --shadow-rail:      0 12px 32px -12px rgba(0,0,0,0.4);
 }
 
-/* Finance-style number display */
-.balance-xl {
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
+/* ===== Typography helpers ============================================== */
+.balance-2xl  { font-size: 2.75rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.balance-xl   { font-size: 2.10rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.balance-lg   { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1; font-variant-numeric: tabular-nums; }
+.balance-md   { font-size: 1.18rem; font-weight: 600; letter-spacing: -0.01em;  font-variant-numeric: tabular-nums; }
+.balance-sm   { font-size: 0.95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mono         { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Liberation Mono", Consolas, monospace; }
+.eyebrow      { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); }
 
-.balance-lg {
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.balance-md {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-
-.mono {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-/* Smooth transitions */
-* {
-  transition-property: background-color, border-color, color, opacity;
-  transition-duration: 150ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Card hover effect */
+/* ===== Cards =========================================================== */
 .finance-card {
-  background: var(--bg-card);
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-card) 100%);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-  transition: all 200ms ease;
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-card);
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
-
 .finance-card:hover {
   border-color: var(--border-light);
-  background: var(--bg-card-hover);
+}
+.finance-card.interactive:hover {
+  border-color: var(--border-glow);
+  transform: translateY(-1px);
 }
 
-/* Transaction row */
-.tx-row {
-  display: flex;
+.rail-card {
+  background: var(--bg-rail);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 18px;
+  box-shadow: var(--shadow-rail);
+}
+
+/* Subtle checkered texture for "pit wall" feel on hero card */
+.pitwall-grid {
+  background-color: var(--bg-card);
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+
+/* ===== Pills =========================================================== */
+.pill {
+  display: inline-flex;
   align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
-  gap: 14px;
-}
-
-.tx-row:last-child {
-  border-bottom: none;
-}
-
-/* Category pill */
-.category-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* Smooth scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #2a2a3a;
-  border-radius: 3px;
-}
-
-/* Input styling */
-input, select, textarea {
+  gap: 4px;
+  font-size: 0.70rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+.pill-pos  { background: var(--pill-pos-bg);  color: var(--pill-pos-fg); }
+.pill-neg  { background: var(--pill-neg-bg);  color: var(--pill-neg-fg); }
+.pill-warn { background: var(--pill-warn-bg); color: var(--pill-warn-fg); }
+.pill-info { background: var(--pill-info-bg); color: var(--pill-info-fg); }
+.pill-mute { background: var(--pill-mute-bg); color: var(--pill-mute-fg); }
 
+/* ===== Icon chip — colored square frame around a Lucide icon =========== */
+.icon-chip {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.icon-chip-red    { background: rgba(255, 56, 56, 0.10);  color: var(--accent-red);    border-color: rgba(255,56,56,0.18); }
+.icon-chip-green  { background: rgba(46, 229, 157, 0.10); color: var(--accent-green);  border-color: rgba(46,229,157,0.18); }
+.icon-chip-yellow { background: rgba(255, 210, 63, 0.10); color: var(--accent-yellow); border-color: rgba(255,210,63,0.18); }
+.icon-chip-blue   { background: rgba(91, 141, 255, 0.10); color: var(--accent-cobalt); border-color: rgba(91,141,255,0.18); }
+.icon-chip-purple { background: rgba(180, 140, 255, 0.10);color: var(--accent-purple); border-color: rgba(180,140,255,0.18); }
+.icon-chip-pink   { background: rgba(255, 122, 182, 0.10);color: var(--accent-pink);   border-color: rgba(255,122,182,0.18); }
+
+/* ===== Buttons ========================================================= */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: 11px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary  { background: var(--accent-red);    color: white; }
+.btn-primary:hover:not(:disabled)  { background: #ff5252; box-shadow: 0 0 0 4px rgba(255, 56, 56, 0.18); }
+.btn-secondary{ background: var(--bg-input);      color: var(--text-primary); border-color: var(--border); }
+.btn-secondary:hover:not(:disabled){ border-color: var(--border-light); background: var(--bg-card-hover); }
+.btn-ghost    { background: transparent;          color: var(--text-secondary); }
+.btn-ghost:hover:not(:disabled)    { color: var(--text-primary); background: var(--bg-input); }
+.btn-success  { background: var(--accent-green);  color: #001f12; }
+.btn-success:hover:not(:disabled)  { background: #4cf3b3; }
+
+/* ===== Tables ========================================================== */
+.tx-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tx-row:last-child { border-bottom: none; }
+
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.data-table thead th {
+  text-align: left;
+  font-size: 0.66rem; font-weight: 600;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table tbody td {
+  font-size: 0.83rem;
+  color: var(--text-primary);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: rgba(255,255,255,0.015); }
+
+/* ===== Misc ============================================================ */
+.category-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Smooth transitions for color-only changes (kept narrow so layouts don't flicker) */
+button, a, [role="button"] {
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+input, select, textarea { font-variant-numeric: tabular-nums; }
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--accent-blue) !important;
-  box-shadow: 0 0 0 3px rgba(79, 125, 247, 0.15);
+  border-color: var(--accent-red) !important;
+  box-shadow: 0 0 0 3px rgba(255, 56, 56, 0.14);
+}
+
+/* Page container — keep main content readable without max-width feeling cramped on big screens */
+.page {
+  padding: 24px clamp(16px, 4vw, 40px) 48px;
 }

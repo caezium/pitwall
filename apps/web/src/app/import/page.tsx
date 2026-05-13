@@ -29,7 +29,7 @@ export default function ImportPage() {
 
   const executeMutation = trpc.import.execute.useMutation({
     onSuccess: (data) => {
-      setResult(data);
+      if (data) setResult(data);
       setStep("result");
     },
   });

@@ -121,7 +121,7 @@ export function BudgetCard() {
               </tr>
             </thead>
             <tbody>
-              {p.breakdown.map((c) => (
+              {(p.breakdown as Array<{ id: string; name: string; frequency: string; unitCost: number; perUnit: number; notes?: string; monthlyProjection: number }>).map((c) => (
                 <tr key={c.id} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td className="px-3 py-2.5 text-sm" style={{ color: "var(--text-primary)" }}>
                     {c.name}
@@ -172,7 +172,7 @@ export function BudgetCard() {
               Show actual {p.actuals.monthStart.slice(0, 7)} spending by category
             </summary>
             <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              {p.actuals.byCategory.map((row) => (
+              {(p.actuals.byCategory as Array<{ name: string | null; total: number; count: number }>).map((row) => (
                 <div key={row.name ?? "uncat"} className="flex justify-between">
                   <span style={{ color: "var(--text-secondary)" }}>{row.name ?? "—"}</span>
                   <span className="mono" style={{ color: "var(--text-primary)" }}>

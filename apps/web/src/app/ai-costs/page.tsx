@@ -2,194 +2,292 @@
 
 import { trpc } from "@/lib/trpc";
 import { formatCurrency } from "@pitwall/shared";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { CardSkeleton, TableSkeleton } from "@/components/skeleton";
 import { QueryError } from "@/components/error-boundary";
 import { ExportButton } from "@/components/export-button";
+import { MetricCard } from "@/components/ui/metric-card";
+import { SectionTitle } from "@/components/ui/section-title";
+import { LwcAreaChart } from "@/components/ui/lwc-area-chart";
+import { Cpu, Activity, Zap, RefreshCcw, FileText } from "lucide-react";
 
-const PROVIDER_COLORS: Record<string, string> = {
-  anthropic: "#f59e0b",
-  openai: "#34d399",
-  openrouter: "#ec4899",
-  google: "#4f7df7",
-  other: "#8b5cf6",
+const PROVIDER_META: Record<string, { label: string; color: string; chip: "blue" | "green" | "yellow" | "purple" | "pink" | "red" }> = {
+  anthropic:  { label: "Anthropic",  color: "#ffd23f", chip: "yellow" },
+  openai:     { label: "OpenAI",     color: "#2ee59d", chip: "green" },
+  openrouter: { label: "OpenRouter", color: "#ff7ab6", chip: "pink" },
+  google:     { label: "Google",     color: "#5b8dff", chip: "blue" },
+  other:      { label: "Other",      color: "#b48cff", chip: "purple" },
 };
 
 export default function AICostsPage() {
   const summary = trpc.aiUsage.summary.useQuery();
-  const syncMutation = trpc.aiUsage.syncNow.useMutation({ onSuccess: () => summary.refetch() });
   const tokscaleMutation = trpc.aiUsage.syncTokscale.useMutation({ onSuccess: () => summary.refetch() });
+  const syncMutation = trpc.aiUsage.syncNow.useMutation({ onSuccess: () => summary.refetch() });
   const exportData = trpc.export.aiUsage.useQuery({});
 
-  if (summary.isLoading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 w-48 rounded-lg" style={{ background: "var(--bg-card)" }} />
-        <div className="grid grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 rounded-2xl" style={{ background: "var(--bg-card)" }} />
-          ))}
-        </div>
-        <div className="h-72 rounded-2xl" style={{ background: "var(--bg-card)" }} />
-      </div>
-    );
-  }
-  if (summary.error) return <QueryError error={summary.error} onRetry={() => summary.refetch()} />;
-  const data = summary.data!;
+  if (summary.isLoading) return <AISkeleton />;
+  if (summary.error || !summary.data) return <QueryError error={summary.error!} onRetry={() => summary.refetch()} />;
+  const data = summary.data;
 
-  // Aggregate daily trend by date for stacked area chart
-  const dateMap = new Map<string, Record<string, number>>();
-  data.dailyTrend.forEach((d: any) => {
-    const existing = dateMap.get(d.date) ?? {};
-    existing[d.provider] = (existing[d.provider] ?? 0) + d.totalCost;
-    dateMap.set(d.date, existing);
+  // Daily totals (lightweight-charts area)
+  const dateMap = new Map<string, number>();
+  (data.dailyTrend as Array<{ date: string; provider: string; totalCost: number }>).forEach((d) => {
+    dateMap.set(d.date, (dateMap.get(d.date) ?? 0) + d.totalCost);
   });
-  const chartData = [...dateMap.entries()]
-    .map(([date, providers]) => ({ date: date.slice(5), ...providers }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const daily = [...dateMap.entries()]
+    .map(([time, value]) => ({ time, value }))
+    .sort((a, b) => a.time.localeCompare(b.time));
 
-  const providers = [...new Set(data.dailyTrend.map((d: any) => d.provider))];
+  const totalTokens = (data.byProvider as Array<{ totalInput: number; totalOutput: number }>)
+    .reduce((s, p) => s + p.totalInput + p.totalOutput, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>AI Costs</h1>
-        <div className="flex gap-2">
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
+      {/* Main */}
+      <div className="space-y-5 min-w-0">
+        <div className="flex items-center justify-end gap-2">
           <ExportButton data={exportData.data} filename="ai-costs.csv" />
           <button
             onClick={() => tokscaleMutation.mutate()}
             disabled={tokscaleMutation.isPending}
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-            style={{ background: "var(--accent-green)", color: "#000" }}
+            className="btn btn-success"
             title="Pulls token usage from local Claude Code/Codex/Cursor logs via tokscale CLI"
           >
-            {tokscaleMutation.isPending ? "Syncing tokscale..." : "Sync from tokscale"}
+            <FileText size={14} />
+            {tokscaleMutation.isPending ? "Tokscale…" : "Sync tokscale"}
           </button>
           <button
             onClick={() => syncMutation.mutate()}
             disabled={syncMutation.isPending}
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-            style={{ background: "var(--accent-blue)", color: "#fff" }}
-            title="Pulls billing usage from configured Anthropic / OpenAI / OpenRouter API keys"
+            className="btn btn-primary"
+            title="Pulls billing usage from configured provider API keys"
           >
-            {syncMutation.isPending ? "Syncing..." : "Sync APIs"}
+            <RefreshCcw size={14} className={syncMutation.isPending ? "animate-spin" : ""} />
+            {syncMutation.isPending ? "Syncing…" : "Sync APIs"}
           </button>
         </div>
-      </div>
 
-      {tokscaleMutation.data && (
-        <div className="finance-card" style={{ borderColor: tokscaleMutation.data.success ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)" }}>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            <span className="font-medium" style={{ color: tokscaleMutation.data.success ? "var(--accent-green)" : "var(--accent-red)" }}>
-              tokscale:
-            </span>{" "}
-            {tokscaleMutation.data.message}
-          </p>
-        </div>
-      )}
-
-      {syncMutation.data && (
-        <div className="finance-card" style={{ borderColor: "rgba(52, 211, 153, 0.3)" }}>
-          {syncMutation.data.map((r: any) => (
-            <p key={r.provider} className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              {r.provider}: {r.recordsInserted} new records
-              {r.errors.length > 0 && <span style={{ color: "var(--accent-red)" }}> ({r.errors.length} errors)</span>}
+        {tokscaleMutation.data && (
+          <div
+            className="finance-card !py-3"
+            style={{
+              borderColor: tokscaleMutation.data.success ? "rgba(46, 229, 157, 0.30)" : "rgba(255, 56, 56, 0.30)",
+              background: tokscaleMutation.data.success ? "rgba(46, 229, 157, 0.04)" : "rgba(255, 56, 56, 0.04)",
+            }}
+          >
+            <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+              <span className="font-medium" style={{ color: tokscaleMutation.data.success ? "var(--accent-green)" : "var(--accent-red)" }}>
+                tokscale:
+              </span>{" "}
+              {tokscaleMutation.data.message}
             </p>
-          ))}
-        </div>
-      )}
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="finance-card">
-          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Total MTD</p>
-          <p className="balance-lg mt-2" style={{ color: "var(--accent-blue)" }}>{formatCurrency(data.totalMtd)}</p>
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>since {data.since}</p>
-        </div>
-        {data.byProvider.map((p: any) => (
-          <div key={p.provider} className="finance-card">
-            <p className="text-xs font-medium uppercase tracking-wide capitalize" style={{ color: "var(--text-muted)" }}>{p.provider}</p>
-            <p className="balance-md mt-2" style={{ color: "var(--text-primary)" }}>{formatCurrency(p.totalCost)}</p>
-            <p className="text-xs mt-1 mono" style={{ color: "var(--text-muted)" }}>{(p.totalInput + p.totalOutput).toLocaleString()} tokens</p>
           </div>
-        ))}
+        )}
+
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <MetricCard
+            label="Total MTD"
+            value={formatCurrency(data.totalMtd, "USD")}
+            sub={`since ${data.since}`}
+            icon={Cpu}
+            iconColor="blue"
+            glow
+          />
+          <MetricCard
+            label="Tokens"
+            value={totalTokens.toLocaleString()}
+            sub={`across ${data.byProvider.length} provider${data.byProvider.length === 1 ? "" : "s"}`}
+            icon={Activity}
+            iconColor="purple"
+          />
+          <MetricCard
+            label="Top model"
+            value={
+              data.byModel.length > 0
+                ? formatCurrency(data.byModel[0].totalCost, "USD")
+                : "—"
+            }
+            sub={data.byModel[0]?.model ?? "no models yet"}
+            icon={Zap}
+            iconColor="yellow"
+          />
+        </div>
+
+        {/* Daily area */}
+        <div className="finance-card">
+          <SectionTitle
+            eyebrow="Daily usage"
+            title={
+              <span className="flex items-center gap-2">
+                Cost trend
+                <span className="balance-md mono" style={{ color: "var(--text-secondary)" }}>
+                  {formatCurrency(data.totalMtd, "USD")}
+                </span>
+              </span>
+            }
+          />
+          {daily.length > 1 ? (
+            <LwcAreaChart
+              data={daily}
+              height={260}
+              topColor="rgba(255, 56, 56, 0.30)"
+              bottomColor="rgba(255, 56, 56, 0.0)"
+              lineColor="#ff3838"
+              priceFormat={(v) => `$${v.toFixed(2)}`}
+            />
+          ) : (
+            <p className="text-sm py-10 text-center" style={{ color: "var(--text-muted)" }}>
+              {daily.length === 1 ? "Single day of data so far — keep syncing to build a trend." : "No usage data yet."}
+            </p>
+          )}
+        </div>
+
+        {/* By model table */}
+        {data.byModel.length > 0 && (
+          <div className="finance-card !p-0 overflow-hidden">
+            <div className="px-5 pt-5">
+              <SectionTitle eyebrow="Cost" title="By model" />
+            </div>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Provider</th>
+                  <th>Model</th>
+                  <th className="!text-right">Input</th>
+                  <th className="!text-right">Output</th>
+                  <th className="!text-right">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.byModel as Array<{ provider: string; model: string; totalInput: number; totalOutput: number; totalCost: number }>).map((m, i) => {
+                  const meta = PROVIDER_META[m.provider] ?? PROVIDER_META.other;
+                  return (
+                    <tr key={i}>
+                      <td>
+                        <span
+                          className="pill"
+                          style={{
+                            background: meta.color + "22",
+                            color: meta.color,
+                          }}
+                        >
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td className="mono">{m.model}</td>
+                      <td className="!text-right mono" style={{ color: "var(--text-secondary)" }}>
+                        {m.totalInput.toLocaleString()}
+                      </td>
+                      <td className="!text-right mono" style={{ color: "var(--text-secondary)" }}>
+                        {m.totalOutput.toLocaleString()}
+                      </td>
+                      <td className="!text-right mono font-semibold">
+                        {formatCurrency(m.totalCost, "USD")}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {data.totalMtd === 0 && (
+          <div className="finance-card flex flex-col items-center text-center py-16">
+            <Cpu size={28} style={{ color: "var(--text-muted)" }} />
+            <p className="text-sm mt-3" style={{ color: "var(--text-primary)" }}>No AI usage data yet</p>
+            <p className="text-[12px] mt-1 max-w-md" style={{ color: "var(--text-muted)" }}>
+              Run <span className="mono" style={{ color: "var(--accent-red)" }}>tokscale</span> locally and click "Sync tokscale", or configure your provider API keys in Settings.
+            </p>
+            <a href="/settings" className="btn btn-secondary mt-4 !text-[12px]">
+              Go to Settings
+            </a>
+          </div>
+        )}
       </div>
 
-      {/* Daily Cost Trend */}
-      {chartData.length > 0 && (
-        <div className="finance-card">
-          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Daily Cost Trend</p>
-          <div className="h-64 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={11} />
-                <YAxis tickFormatter={(v) => `$${v.toFixed(2)}`} stroke="var(--text-muted)" fontSize={11} />
-                <Tooltip
-                  formatter={(value: any) => formatCurrency(value)}
-                  contentStyle={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12 }}
-                  labelStyle={{ color: "var(--text-secondary)" }}
-                  itemStyle={{ color: "var(--text-primary)" }}
-                />
-                {providers.map((provider: string) => (
-                  <Area
-                    key={provider}
-                    type="monotone"
-                    dataKey={provider}
-                    stackId="1"
-                    stroke={PROVIDER_COLORS[provider] ?? "var(--text-muted)"}
-                    fill={PROVIDER_COLORS[provider] ?? "var(--text-muted)"}
-                    fillOpacity={0.3}
+      {/* Right rail — provider breakdown */}
+      <div className="space-y-5 min-w-0">
+        <div className="rail-card">
+          <SectionTitle eyebrow="Providers" title="MTD breakdown" />
+          {data.byProvider.length === 0 ? (
+            <p className="text-sm text-center py-6" style={{ color: "var(--text-muted)" }}>No data.</p>
+          ) : (
+            <>
+              <div className="flex w-full h-3 rounded-full overflow-hidden">
+                {(data.byProvider as Array<{ provider: string; totalCost: number }>).map((p) => (
+                  <div
+                    key={p.provider}
+                    style={{
+                      background: PROVIDER_META[p.provider]?.color ?? "#666",
+                      width: `${(p.totalCost / data.totalMtd) * 100}%`,
+                    }}
+                    title={`${p.provider} ${formatCurrency(p.totalCost, "USD")}`}
                   />
                 ))}
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+              </div>
+              <ul className="mt-4 space-y-3">
+                {(data.byProvider as Array<{ provider: string; totalCost: number; totalInput: number; totalOutput: number; records: number }>)
+                  .slice()
+                  .sort((a, b) => b.totalCost - a.totalCost)
+                  .map((p) => {
+                    const meta = PROVIDER_META[p.provider] ?? PROVIDER_META.other;
+                    return (
+                      <li key={p.provider}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: meta.color }} />
+                            <span className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>
+                              {meta.label}
+                            </span>
+                          </div>
+                          <span className="mono text-[13px] font-semibold">
+                            {formatCurrency(p.totalCost, "USD")}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]" style={{ color: "var(--text-muted)" }}>
+                          <span>{(p.totalInput + p.totalOutput).toLocaleString()} tokens</span>
+                          <span>{((p.totalCost / data.totalMtd) * 100).toFixed(1)}%</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </>
+          )}
         </div>
-      )}
 
-      {/* By Model Table */}
-      {data.byModel.length > 0 && (
-        <div className="finance-card !p-0 overflow-hidden">
-          <p className="text-xs font-medium uppercase tracking-wide px-5 pt-5" style={{ color: "var(--text-muted)" }}>
-            Cost by Model
+        <div className="rail-card">
+          <SectionTitle eyebrow="Tools" title="Keep usage current" />
+          <p className="text-[12.5px] mb-3" style={{ color: "var(--text-secondary)" }}>
+            tokscale scans local <span className="mono" style={{ color: "var(--accent-red)" }}>~/.claude/projects/</span>
+            (and codex/cursor/etc.) for token usage. Re-run any time.
           </p>
-          <table className="w-full mt-3">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                <th className="px-5 py-3 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Provider</th>
-                <th className="px-5 py-3 text-left text-xs font-medium" style={{ color: "var(--text-muted)" }}>Model</th>
-                <th className="px-5 py-3 text-right text-xs font-medium" style={{ color: "var(--text-muted)" }}>Input</th>
-                <th className="px-5 py-3 text-right text-xs font-medium" style={{ color: "var(--text-muted)" }}>Output</th>
-                <th className="px-5 py-3 text-right text-xs font-medium" style={{ color: "var(--text-muted)" }}>Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.byModel.map((m: any, i: number) => (
-                <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td className="px-5 py-3.5 text-sm capitalize" style={{ color: "var(--text-primary)" }}>{m.provider}</td>
-                  <td className="px-5 py-3.5 text-sm mono" style={{ color: "var(--text-secondary)" }}>{m.model}</td>
-                  <td className="px-5 py-3.5 text-sm text-right mono" style={{ color: "var(--text-secondary)" }}>{m.totalInput.toLocaleString()}</td>
-                  <td className="px-5 py-3.5 text-sm text-right mono" style={{ color: "var(--text-secondary)" }}>{m.totalOutput.toLocaleString()}</td>
-                  <td className="px-5 py-3.5 text-sm text-right mono font-semibold" style={{ color: "var(--text-primary)" }}>{formatCurrency(m.totalCost)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {data.totalMtd === 0 && (
-        <div className="finance-card flex flex-col items-center py-16">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl mb-4" style={{ background: "var(--bg-input)" }}>
-            🤖
+          <div className="space-y-2">
+            <a href="/subscriptions" className="btn btn-secondary w-full justify-center !text-[12px]">
+              Manage subscriptions
+            </a>
+            <a href="/settings" className="btn btn-secondary w-full justify-center !text-[12px]">
+              Configure API keys
+            </a>
           </div>
-          <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No AI usage data</p>
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Configure your API keys in Settings and click &quot;Sync Now&quot;</p>
-          <a href="/settings" className="text-sm mt-3 font-medium" style={{ color: "var(--accent-blue)" }}>
-            Go to Settings →
-          </a>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+function AISkeleton() {
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6 animate-pulse">
+      <div className="space-y-5">
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => <div key={i} className="h-28 rounded-2xl" style={{ background: "var(--bg-card)" }} />)}
+        </div>
+        <div className="h-72 rounded-2xl" style={{ background: "var(--bg-card)" }} />
+      </div>
+      <div className="space-y-5">
+        <div className="h-72 rounded-2xl" style={{ background: "var(--bg-card)" }} />
+      </div>
     </div>
   );
 }

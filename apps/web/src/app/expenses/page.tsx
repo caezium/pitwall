@@ -6,14 +6,28 @@ import { formatCurrency, formatDate } from "@pitwall/shared";
 import { TagManager } from "@/components/tag-manager";
 import { Pagination } from "@/components/pagination";
 import { ExportButton } from "@/components/export-button";
+import { SectionTitle } from "@/components/ui/section-title";
+import { Search, Plus, Trash2, X } from "lucide-react";
 
 const LIMIT = 25;
 
-const DOMAIN_COLORS: Record<string, string> = {
-  karting: "#f87171",
-  ai: "#4f7df7",
-  investment: "#34d399",
-  general: "#8888a0",
+const DOMAIN_META: Record<string, { color: string; chip: "red" | "blue" | "green" | "purple" }> = {
+  karting:    { color: "#ff5252", chip: "red" },
+  ai:         { color: "#5b8dff", chip: "blue" },
+  investment: { color: "#2ee59d", chip: "green" },
+  general:    { color: "#b48cff", chip: "purple" },
+};
+
+type Expense = {
+  id: string;
+  description: string;
+  amount: number;
+  currency: string;
+  date: string;
+  eventName: string | null;
+  trackName: string | null;
+  category: { id: string; name: string; domain: string } | null;
+  expenseTags?: Array<{ tag: { id: string; name: string } }>;
 };
 
 export default function ExpensesPage() {
@@ -23,7 +37,7 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState("");
   const utils = trpc.useUtils();
 
-  const expenses = trpc.expenses.list.useQuery({ limit: LIMIT, offset, search: search || undefined });
+  const expensesQ = trpc.expenses.list.useQuery({ limit: LIMIT, offset, search: search || undefined });
   const categories = trpc.expenses.categories.useQuery();
   const exportData = trpc.export.expenses.useQuery({});
   const createExpense = trpc.expenses.create.useMutation({
@@ -48,56 +62,75 @@ export default function ExpensesPage() {
     });
   };
 
-  // Group transactions by date
-  const grouped = new Map<string, any[]>();
-  (expenses.data ?? []).forEach((e: any) => {
+  const items = (expensesQ.data ?? []) as Expense[];
+  // Group by date
+  const grouped = new Map<string, Expense[]>();
+  items.forEach((e) => {
     const list = grouped.get(e.date) ?? [];
     list.push(e);
     grouped.set(e.date, list);
   });
 
+  const pageTotal = items.reduce((s, e) => s + e.amount, 0);
+  const pageCurrency = items[0]?.currency ?? "CNY";
+
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Transactions</h1>
-        <div className="flex gap-2">
+      {/* Action row */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+            <input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
+              placeholder="Search description, notes, category…"
+              className="rounded-[12px] pl-9 pr-3 py-2 text-[13px] w-[340px] max-w-full"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            />
+            {search && (
+              <button
+                onClick={() => { setSearch(""); setOffset(0); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          {items.length > 0 && (
+            <span className="pill pill-mute">
+              {items.length} on page · {formatCurrency(pageTotal, pageCurrency)}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
           <ExportButton data={exportData.data} filename="expenses.csv" />
           <button
-            onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 rounded-xl text-sm font-medium"
-            style={{ background: "var(--accent-blue)", color: "#fff" }}
+            onClick={() => setShowForm((v) => !v)}
+            className={`btn ${showForm ? "btn-secondary" : "btn-primary"}`}
           >
-            {showForm ? "Cancel" : "+ Add"}
+            {showForm ? <X size={14} /> : <Plus size={14} />}
+            {showForm ? "Cancel" : "New"}
           </button>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <input
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
-          placeholder="Search transactions..."
-          className="w-full rounded-xl px-4 py-3 text-sm"
-          style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-        />
-      </div>
-
-      {/* Add Form */}
+      {/* Add form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="finance-card space-y-4">
-          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>New Transaction</p>
+          <SectionTitle eyebrow="New entry" title="Add transaction" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
-              { name: "description", label: "Description", type: "text", required: true, placeholder: "What did you spend on?" },
-              { name: "amount", label: "Amount", type: "number", required: true, placeholder: "0.00", step: "0.01" },
-              { name: "date", label: "Date", type: "date", required: true, defaultValue: new Date().toISOString().split("T")[0] },
-              { name: "eventName", label: "Event", type: "text", placeholder: "e.g. Round 3" },
-              { name: "trackName", label: "Track", type: "text", placeholder: "e.g. NJMP" },
+              { name: "description", label: "Description", type: "text", required: true, placeholder: "e.g. 极速赛车 trackday" },
+              { name: "amount",      label: "Amount",      type: "number", required: true, placeholder: "0.00", step: "0.01" },
+              { name: "date",        label: "Date",        type: "date", required: true, defaultValue: new Date().toISOString().split("T")[0] },
+              { name: "eventName",   label: "Event",       type: "text", placeholder: "optional" },
+              { name: "trackName",   label: "Track",       type: "text", placeholder: "optional" },
             ].map((field) => (
               <div key={field.name}>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>{field.label}</label>
+                <label className="eyebrow mb-1.5 block">{field.label}</label>
                 <input
                   name={field.name}
                   type={field.type}
@@ -105,114 +138,136 @@ export default function ExpensesPage() {
                   placeholder={field.placeholder}
                   step={field.step}
                   defaultValue={field.defaultValue}
-                  className="w-full rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full rounded-[12px] px-3 py-2.5 text-sm"
                   style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                 />
               </div>
             ))}
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Category</label>
-              <select name="categoryId" className="w-full rounded-xl px-3 py-2.5 text-sm" style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
+              <label className="eyebrow mb-1.5 block">Category</label>
+              <select
+                name="categoryId"
+                className="w-full rounded-[12px] px-3 py-2.5 text-sm"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              >
                 <option value="">Uncategorized</option>
-                {categories.data?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {(categories.data as Array<{ id: string; name: string; domain: string }> | undefined)?.map((c) => (
+                  <option key={c.id} value={c.id}>{c.domain}/{c.name}</option>
+                ))}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Notes</label>
-            <textarea name="notes" rows={2} className="w-full rounded-xl px-3 py-2.5 text-sm" style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+            <label className="eyebrow mb-1.5 block">Notes</label>
+            <textarea
+              name="notes"
+              rows={2}
+              className="w-full rounded-[12px] px-3 py-2.5 text-sm"
+              style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            />
           </div>
           <TagManager selectedTagIds={selectedTags} onChange={setSelectedTags} />
-          <button
-            type="submit"
-            disabled={createExpense.isPending}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium"
-            style={{ background: "var(--accent-green)", color: "#000" }}
-          >
-            {createExpense.isPending ? "Saving..." : "Save Transaction"}
-          </button>
+          <div className="flex justify-end">
+            <button type="submit" disabled={createExpense.isPending} className="btn btn-success">
+              {createExpense.isPending ? "Saving…" : "Save"}
+            </button>
+          </div>
         </form>
       )}
 
-      {/* Transaction List — Grouped by Date */}
-      {expenses.isLoading ? (
+      {/* List */}
+      {expensesQ.isLoading ? (
         <div className="space-y-3 animate-pulse">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 rounded-xl" style={{ background: "var(--bg-card)" }} />
+            <div key={i} className="h-16 rounded-2xl" style={{ background: "var(--bg-card)" }} />
           ))}
         </div>
       ) : grouped.size === 0 ? (
-        <div className="finance-card flex flex-col items-center py-16">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl mb-4" style={{ background: "var(--bg-input)" }}>
-            📋
-          </div>
-          <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No transactions yet</p>
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Click &quot;+ Add&quot; to record your first expense</p>
+        <div className="finance-card flex flex-col items-center text-center py-16">
+          <Search size={28} style={{ color: "var(--text-muted)" }} />
+          <p className="text-sm mt-3" style={{ color: "var(--text-primary)" }}>
+            {search ? "Nothing matches that search." : "No transactions yet."}
+          </p>
+          <p className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>
+            {search ? "Try a shorter term or clear the box." : "Click New to add one, or use Import."}
+          </p>
         </div>
       ) : (
-        <div className="space-y-1">
-          {[...grouped.entries()].map(([date, items]) => (
-            <div key={date}>
-              <p className="text-xs font-medium px-1 py-2 sticky top-0 z-10" style={{ color: "var(--text-muted)", background: "var(--bg-primary)" }}>
-                {formatDate(date)}
-              </p>
-              <div className="finance-card !p-0 overflow-hidden">
-                {items.map((expense: any) => (
-                  <div
-                    key={expense.id}
-                    className="flex items-center gap-3 px-4 py-3.5 group"
-                    style={{ borderBottom: "1px solid var(--border)" }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm flex-shrink-0 font-medium"
-                      style={{
-                        background: (DOMAIN_COLORS[expense.category?.domain ?? "general"] ?? "#555") + "18",
-                        color: DOMAIN_COLORS[expense.category?.domain ?? "general"] ?? "#555",
-                      }}
-                    >
-                      {expense.description.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
-                        {expense.description}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                          {expense.category?.name ?? "Uncategorized"}
-                        </span>
-                        {expense.eventName && (
-                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
-                            {expense.eventName}
-                          </span>
-                        )}
-                        {expense.expenseTags?.map((et: any) => (
-                          <span key={et.tag.id} className="text-xs px-1.5 py-0.5 rounded" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
-                            {et.tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold mono" style={{ color: "var(--accent-red)" }}>
-                        −{formatCurrency(expense.amount, expense.currency ?? "CNY")}
-                      </p>
-                      <button
-                        onClick={() => deleteExpense.mutate({ id: expense.id })}
-                        className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ color: "var(--text-muted)" }}
+        <div className="space-y-3">
+          {[...grouped.entries()].map(([date, list]) => {
+            const dayTotal = list.reduce((s, e) => s + e.amount, 0);
+            return (
+              <div key={date} className="space-y-1.5">
+                <div className="flex items-center justify-between px-1">
+                  <p className="eyebrow">{formatDate(date)}</p>
+                  <p className="mono text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+                    {list.length} · {formatCurrency(dayTotal, list[0]?.currency ?? "CNY")}
+                  </p>
+                </div>
+                <div className="finance-card !p-0 overflow-hidden">
+                  {list.map((expense, idx) => {
+                    const meta = DOMAIN_META[expense.category?.domain ?? "general"] ?? DOMAIN_META.general;
+                    return (
+                      <div
+                        key={expense.id}
+                        className="flex items-center gap-3 px-4 py-3 group hover:bg-white/[0.015]"
+                        style={{ borderBottom: idx < list.length - 1 ? "1px solid var(--border)" : "none" }}
                       >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                        <div
+                          className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 text-[12px] font-bold"
+                          style={{
+                            background: meta.color + "1f",
+                            color: meta.color,
+                          }}
+                        >
+                          {(expense.category?.name ?? expense.description).charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13.5px] font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                            {expense.description}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span
+                              className="pill !text-[10px]"
+                              style={{
+                                background: meta.color + "1a",
+                                color: meta.color,
+                              }}
+                            >
+                              {expense.category?.name ?? "Uncategorized"}
+                            </span>
+                            {expense.eventName && (
+                              <span className="pill pill-info !text-[10px]">{expense.eventName}</span>
+                            )}
+                            {expense.expenseTags?.map((et) => (
+                              <span key={et.tag.id} className="pill pill-mute !text-[10px]">{et.tag.name}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="mono text-[13.5px] font-semibold" style={{ color: "var(--accent-red)" }}>
+                            −{formatCurrency(expense.amount, expense.currency ?? "CNY")}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteExpense.mutate({ id: expense.id })}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md"
+                          style={{ color: "var(--text-muted)" }}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <Pagination
             offset={offset}
             limit={LIMIT}
-            hasMore={(expenses.data?.length ?? 0) >= LIMIT}
+            hasMore={items.length >= LIMIT}
             onPrev={() => setOffset(Math.max(0, offset - LIMIT))}
             onNext={() => setOffset(offset + LIMIT)}
           />
