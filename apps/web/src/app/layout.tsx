@@ -11,11 +11,14 @@ export const metadata: Metadata = {
 
 /* Inline bootstrap so the saved theme is applied before first paint —
    prevents a light→dark flash for users who chose pitwall-dark. */
+/* Whitelist must match THEMES in theme-toggle.tsx and the `themes:` line
+   in globals.css. Default is "light" — OS preference is ignored on purpose. */
 const themeBootstrap = `
 (function () {
+  var allowed = ["light","business"];
   try {
     var t = localStorage.getItem("pitwall-theme");
-    if (t !== "light" && t !== "pitwall-dark") t = "light";
+    if (allowed.indexOf(t) === -1) t = "light";
     document.documentElement.setAttribute("data-theme", t);
   } catch (_) {
     document.documentElement.setAttribute("data-theme", "light");

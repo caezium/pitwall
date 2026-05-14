@@ -11,8 +11,9 @@ export type MetricCardProps = {
   sub?: ReactNode;
   /** Pill in the top-right (e.g. "+2.1% ↗"). */
   pill?: { tone: "pos" | "neg" | "warn" | "info" | "mute"; text: string };
-  /** Right-aligned ghost action button (e.g. "Replenish"). */
-  action?: { label: string; onClick: () => void };
+  /** Right-aligned ghost action button (e.g. "Replenish"). Icon is optional
+   *  but recommended so the affordance reads as a button, not a text link. */
+  action?: { label: string; onClick: () => void; icon?: LucideIcon };
   icon?: LucideIcon;
   iconColor?: ChipColor;
   /** Optional gradient strip behind the icon chip (small flair). */
@@ -55,7 +56,8 @@ export function MetricCard({
       <div className="relative mt-3 flex items-end justify-between gap-3">
         <div className="balance-xl text-base-content">{value}</div>
         {action && (
-          <button onClick={action.onClick} className="btn btn-ghost btn-sm">
+          <button onClick={action.onClick} className="btn btn-ghost btn-sm gap-1.5">
+            {action.icon && <action.icon size={13} strokeWidth={2.25} />}
             {action.label}
           </button>
         )}

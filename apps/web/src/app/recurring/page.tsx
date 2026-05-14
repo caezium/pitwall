@@ -61,7 +61,7 @@ export default function RecurringPage() {
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="btn btn-info"
+            className={`btn ${showForm ? "btn-secondary" : "btn-primary"}`}
           >
             {showForm ? "Cancel" : "+ Add"}
           </button>

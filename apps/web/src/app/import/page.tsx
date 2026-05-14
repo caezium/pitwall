@@ -147,7 +147,7 @@ export default function ImportPage() {
             <button
               onClick={handleParse}
               disabled={!csvContent || parseMutation.isPending}
-              className="btn btn-info"
+              className="btn btn-primary"
             >
               {parseMutation.isPending ? "Parsing..." : "Preview & Map Columns"}
             </button>
@@ -266,7 +266,7 @@ export default function ImportPage() {
 
           <button
             onClick={handleReset}
-            className="btn btn-info"
+            className="btn btn-primary"
           >
             Import More
           </button>

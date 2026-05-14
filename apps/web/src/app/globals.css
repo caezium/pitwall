@@ -8,7 +8,7 @@
 /* ====================================================================== */
 
 @plugin "daisyui" {
-  themes: light --default, pitwall-dark;
+  themes: light --default, business;
   logs: false;
 }
 

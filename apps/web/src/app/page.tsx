@@ -9,7 +9,7 @@ import { SectionTitle } from "@/components/ui/section-title";
 import { LwcAreaChart } from "@/components/ui/lwc-area-chart";
 import {
   Wallet, Cpu, LineChart as LineChartIcon, Flag,
-  ArrowUpRight, ArrowDownRight, Plus, TrendingUp,
+  ArrowUpRight, ArrowDownRight, Plus, TrendingUp, RefreshCw,
 } from "lucide-react";
 
 const DOMAIN_META: Record<string, { label: string; color: string; chip: "red" | "blue" | "green" | "yellow" | "purple" | "pink" }> = {
@@ -58,7 +58,6 @@ export default function DashboardPage() {
             sub={`${data.monthlyTransactions} transactions · since ${data.windowStart}`}
             icon={Wallet}
             iconColor="red"
-            glow
           />
           <MetricCard
             label="AI tokens MTD"
@@ -66,7 +65,7 @@ export default function DashboardPage() {
             sub={`+ ${formatCurrency(data.subscriptionMonthly ?? 0, "USD")}/mo in subscriptions`}
             icon={Cpu}
             iconColor="blue"
-            action={{ label: "Sync", onClick: () => location.assign("/ai-costs") }}
+            action={{ label: "Sync", icon: RefreshCw, onClick: () => location.assign("/ai-costs") }}
           />
           <MetricCard
             label="Portfolio (NetLiq)"
@@ -275,7 +274,7 @@ export default function DashboardPage() {
 
             <a
               href="/karting"
-              className="btn btn-secondary w-full justify-center mt-4 !text-[12px]"
+              className="btn btn-ghost btn-sm w-full justify-center mt-4 !text-[12px]"
             >
               Open karting hub →
             </a>
@@ -309,11 +308,11 @@ export default function DashboardPage() {
             in token usage this window
           </p>
           <div className="flex gap-2 mt-4">
-            <a href="/ai-costs" className="btn btn-secondary flex-1 justify-center !text-[12px]">
-              Usage
+            <a href="/ai-costs" className="btn btn-ghost btn-sm flex-1 justify-center !text-[12px]">
+              Usage →
             </a>
-            <a href="/subscriptions" className="btn btn-secondary flex-1 justify-center !text-[12px]">
-              Subs
+            <a href="/subscriptions" className="btn btn-ghost btn-sm flex-1 justify-center !text-[12px]">
+              Subs →
             </a>
           </div>
         </div>
@@ -418,21 +417,18 @@ function EmptyState({
 function EmptyChart({ hint, cta }: { hint: string; cta?: { label: string; href: string } }) {
   return (
     <div
-      className="rounded-[12px] flex flex-col items-center justify-center text-center px-6"
-      style={{
-        height: 240,
-        border: "1px dashed var(--border)",
-        background: "var(--bg-input)",
-      }}
+      className="mt-3 rounded-[10px] px-4 py-3 flex items-center justify-between gap-4"
+      style={{ border: "1px dashed var(--border)", background: "var(--bg-input)" }}
     >
-      <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-        Not enough history yet.
-      </p>
-      <p className="text-[12px] mt-1 max-w-md" style={{ color: "var(--text-muted)" }}>
+      <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+        <span style={{ color: "var(--text-secondary)" }}>Not enough history yet.</span>{" "}
         {hint}
       </p>
       {cta && (
-        <a href={cta.href} className="btn btn-secondary mt-3 !text-[12px]">
+        <a
+          href={cta.href}
+          className="btn btn-ghost btn-xs whitespace-nowrap !text-[11.5px]"
+        >
           {cta.label} →
         </a>
       )}

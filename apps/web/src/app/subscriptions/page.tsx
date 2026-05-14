@@ -55,7 +55,7 @@ export default function SubscriptionsPage() {
         <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>AI Subscriptions</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="btn btn-info"
+          className={`btn ${showForm ? "btn-secondary" : "btn-primary"}`}
         >
           {showForm ? "Cancel" : "+ Add"}
         </button>

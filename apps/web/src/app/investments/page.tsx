@@ -112,7 +112,7 @@ export default function InvestmentsPage() {
             <ExportButton data={exportData.data} filename="trades.csv" />
             <button
               onClick={() => setFlexOpen((v) => !v)}
-              className="btn btn-secondary"
+              className="btn btn-outline"
               title="Paste IBKR Activity Flex Query XML"
             >
               <FileText size={14} />
@@ -262,18 +262,14 @@ export default function InvestmentsPage() {
             />
           ) : (
             <div
-              className="rounded-[12px] flex flex-col items-center justify-center text-center px-6"
-              style={{
-                height: 280,
-                border: "1px dashed var(--border)",
-                background: "var(--bg-input)",
-              }}
+              className="mt-3 rounded-[10px] px-4 py-3 flex items-center gap-3"
+              style={{ border: "1px dashed var(--border)", background: "var(--bg-input)" }}
             >
-              <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-                One snapshot logged so far.
-              </p>
-              <p className="text-[12px] mt-1 max-w-md" style={{ color: "var(--text-muted)" }}>
-                Re-run Flex Query (daily or weekly) to build a NetLiq history line. Each import adds a snapshot for that report date.
+              <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  One snapshot logged so far.
+                </span>{" "}
+                Re-run Flex Query daily or weekly to build a history line.
               </p>
             </div>
           )}

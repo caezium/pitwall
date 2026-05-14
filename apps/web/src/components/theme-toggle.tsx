@@ -3,24 +3,23 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
-type Theme = "light" | "pitwall-dark";
+type Theme = "light" | "business";
 
 /**
- * Swaps between DaisyUI's `light` theme and the custom `pitwall-dark`
- * (racing palette). Persists choice in localStorage; the inline bootstrap
- * in layout.tsx applies the saved theme before first paint to avoid FOUC.
+ * Swaps between DaisyUI's `light` theme and the `business` dark theme
+ * (sober navy). Persists choice in localStorage; the inline bootstrap in
+ * layout.tsx applies the saved theme before first paint to avoid FOUC.
  */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    // Re-read the value the inline bootstrap set on <html>.
     const current = document.documentElement.getAttribute("data-theme");
-    if (current === "light" || current === "pitwall-dark") setTheme(current);
+    if (current === "light" || current === "business") setTheme(current);
   }, []);
 
   const toggle = () => {
-    const next: Theme = theme === "light" ? "pitwall-dark" : "light";
+    const next: Theme = theme === "light" ? "business" : "light";
     setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
     try {
@@ -28,7 +27,7 @@ export function ThemeToggle() {
     } catch {}
   };
 
-  const isDark = theme === "pitwall-dark";
+  const isDark = theme === "business";
 
   return (
     <button
